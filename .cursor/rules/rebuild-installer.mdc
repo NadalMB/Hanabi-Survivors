@@ -1,0 +1,12 @@
+---
+description: Rebuild the Windows installer and portable exe after every game change
+alwaysApply: true
+---
+
+# Rebuild installer after changes
+
+After any change that affects the shipped game (source, assets, styles, or packaging config), run `npm run dist` before finishing and wait until it succeeds.
+
+- Output overwrites `release/<version>/` from `package.json`. Do not bump the version unless the user asks.
+- Tell the user the installer path (`HanabiSurvivors-Setup-<version>.exe`) and the portable exe (`HanabiSurvivors-Portable-<version>.exe`).
+- Skip the rebuild only for questions that do not change the game, or when this same change already produced a successful `npm run dist`.

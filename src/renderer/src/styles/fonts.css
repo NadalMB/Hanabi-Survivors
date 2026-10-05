@@ -1,0 +1,20 @@
+@font-face {
+  font-family: 'Dela Gothic One';
+  src: url('../assets/fonts/DelaGothicOne-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'M PLUS Rounded 1c';
+  src: url('../assets/fonts/MPLUSRounded1c-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'M PLUS Rounded 1c';
+  src: url('../assets/fonts/MPLUSRounded1c-Bold.ttf') format('truetype');
+  font-weight: 700 900;
+  font-display: block;
+}
