@@ -123,10 +123,10 @@ const FAMILIES: FamilyForms[] = [
     icon: 'katana',
     legendIcon: 'sakura',
     rows: [
-      { rarity: 'common', name: 'Corte Breve', description: 'Un tajo más corto y más rápido. Suele quedar por debajo de una katana crecida.', form: 'cross', visual: ProjVisual.Petal, base: s({ damage: 16, cooldown: 0.72, amount: 1, area: 0.82, duration: 0.16, interval: 0.1 }) },
-      { rarity: 'rare', name: 'Corte en Cruz', description: 'Cuatro tajos en cruz, en vez del corte frontal.', form: 'cross', visual: ProjVisual.Petal, base: s({ damage: 30, cooldown: 0.9, amount: 2, area: 1.15, duration: 0.22, interval: 0.08 }) },
-      { rarity: 'epic', name: 'Danza de Pétalos', description: 'Cada tajo suelta una ráfaga de pétalos cortantes.', form: 'petals', visual: ProjVisual.Petal, base: s({ damage: 48, cooldown: 0.75, amount: 3, area: 1.4, duration: 0.24, interval: 0.07 }) },
-      { rarity: 'legendary', name: 'Senbonzakura Oscura', description: 'Tormenta dorada de pétalos en las cuatro direcciones.', form: 'petals', visual: ProjVisual.Petal + GLOW, base: s({ damage: 74, cooldown: 0.62, amount: 4, area: 1.7, duration: 0.26, knockback: 1.2, interval: 0.06 }) }
+      { rarity: 'common', name: 'Corte Breve', description: 'Un tajo más corto y más rápido. Suele quedar por debajo de un abanico crecido.', form: 'cross', visual: ProjVisual.Petal, base: s({ damage: 16, cooldown: 0.72, amount: 1, area: 0.82, duration: 0.16, interval: 0.1 }) },
+      { rarity: 'rare', name: 'Cuatro Vientos', description: 'Cuatro tajos, uno cada 90°. Ataca más rápido que el abanico.', form: 'cross', visual: ProjVisual.Petal, base: s({ damage: 22, cooldown: 0.68, amount: 4, area: 1.22, speed: 0.85, duration: 0.2, interval: 0.05 }) },
+      { rarity: 'epic', name: 'Barrido Gemelo', description: 'Un barrido de 190° a cada lado. Más lento, más daño y más alcance.', form: 'sides', visual: ProjVisual.Petal, base: s({ damage: 36, cooldown: 1.35, amount: 1, area: 1.6, speed: 0.68, duration: 0.28, knockback: 1.15, interval: 0.08 }) },
+      { rarity: 'legendary', name: 'Ciclón Carmesí', description: 'Una vuelta completa de 360°. El más lento, el que más duele y más abarca.', form: 'spin', visual: ProjVisual.Petal + GLOW, base: s({ damage: 54, cooldown: 1.9, amount: 1, area: 2.05, speed: 0.5, duration: 0.34, knockback: 1.35, interval: 0.08 }) }
     ]
   },
   {
@@ -231,6 +231,8 @@ export function buildPrestigeWeapons(): Record<string, WeaponDef> {
   for (const family of FAMILIES) {
     const list: WeaponDef[] = []
     for (const row of family.rows) {
+      if (row.rarity === 'common') continue
+      if (row.rarity === 'legendary' && family.family !== 'katana') continue
       const id = `${family.family}_${row.rarity}`
       const def: WeaponDef = {
         id,

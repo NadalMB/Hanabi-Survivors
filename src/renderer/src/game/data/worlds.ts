@@ -35,9 +35,10 @@ const WORLD2_BOSSES: readonly number[] = [
   EnemyType.Gashadokuro
 ]
 
-/** Minute-10 guardian replaces whatever boss occupied that slot. */
-function gateAtTen(type: number, at: number): number {
-  return at === 10 ? EnemyType.Gate : type
+/** Minute-10 guardian. World 2 has its own, not a copy of Shuten-dōji. */
+function gateAtTen(type: number, at: number, realm: number): number {
+  if (at !== 10) return type
+  return realm > 0 ? EnemyType.GateAsh : EnemyType.Gate
 }
 
 export function spawnTable(realm: number): readonly SpawnEntry[] {
@@ -48,7 +49,7 @@ export function spawnTable(realm: number): readonly SpawnEntry[] {
 export function waveEvents(realm: number): readonly WaveEvent[] {
   return WAVE_EVENTS.map((ev) => {
     const mapped = realm > 0 && 'type' in ev ? (WORLD2_TYPE[ev.type] ?? ev.type) : ev.type
-    return { ...ev, type: gateAtTen(mapped, ev.at) }
+    return { ...ev, type: gateAtTen(mapped, ev.at, realm) }
   })
 }
 

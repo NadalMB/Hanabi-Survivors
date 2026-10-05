@@ -80,6 +80,25 @@ export interface SaveData {
   ownedCosmetics: string[]
   equipped: CosmeticLoadout
   battlePass: BattlePassSave
+  /** Highest world index reached. 1 is the first night; 2 unlocks the hidden musician. */
+  worldsReached: number
+  /**
+   * While set, the live unlock lists are the full catalog and this object is the real profile.
+   * A temporary control until the game is finished.
+   */
+  devUnlock: DevUnlockBackup | null
+}
+
+/** The profile fields replaced by the temporary unlock-all button. */
+export interface DevUnlockBackup {
+  unlockedCharacters: string[]
+  unlockedWeapons: string[]
+  unlockedPassives: string[]
+  seenEnemies: number[]
+  ownedCosmetics: string[]
+  worldsReached: number
+  battlePass: BattlePassSave
+  equipped: CosmeticLoadout
 }
 
 export function emptyLoadout(): CosmeticLoadout {
@@ -124,19 +143,21 @@ export function createDefaultSave(): SaveData {
     unlockedPassives: [],
     seenEnemies: [],
     lastCharacter: 'sakura',
+    worldsReached: 1,
     starterWeapons: {},
     characterStats: {},
     stats: { totalKills: 0, totalRuns: 0, bestSurvivalSeconds: 0, bossesDefeated: 0, timePlayed: 0 },
     settings: defaultSettings(),
-    ownedCosmetics: [],
-    equipped: emptyLoadout(),
+    ownedCosmetics: ['shikigami'],
+    equipped: { ...emptyLoadout(), pet: 'shikigami' },
     battlePass: {
       season: BATTLE_PASS_SEASON,
       xp: 0,
       premium: false,
       claimedFree: [],
       claimedPremium: []
-    }
+    },
+    devUnlock: null
   }
 }
 
@@ -154,6 +175,40 @@ function hydrateStarterWeapons(raw: unknown): Record<string, string> {
     out[id] = weapon
   }
   return out
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : []
+}
+
+function hydrateDevUnlock(raw: unknown): DevUnlockBackup | null {
+  if (!raw || typeof raw !== 'object') return null
+  const row = raw as Partial<DevUnlockBackup>
+  if (!Array.isArray(row.unlockedCharacters) || !row.battlePass || !row.equipped) return null
+  const bp = row.battlePass
+  const equipped = row.equipped
+  return {
+    unlockedCharacters: stringList(row.unlockedCharacters),
+    unlockedWeapons: stringList(row.unlockedWeapons),
+    unlockedPassives: stringList(row.unlockedPassives),
+    seenEnemies: Array.isArray(row.seenEnemies) ? row.seenEnemies.filter((n): n is number => typeof n === 'number') : [],
+    ownedCosmetics: stringList(row.ownedCosmetics),
+    worldsReached: row.worldsReached === 2 ? 2 : 1,
+    battlePass: {
+      season: typeof bp.season === 'number' ? bp.season : BATTLE_PASS_SEASON,
+      xp: typeof bp.xp === 'number' ? bp.xp : 0,
+      premium: !!bp.premium,
+      claimedFree: Array.isArray(bp.claimedFree) ? bp.claimedFree.filter((n): n is number => typeof n === 'number') : [],
+      claimedPremium: Array.isArray(bp.claimedPremium) ? bp.claimedPremium.filter((n): n is number => typeof n === 'number') : []
+    },
+    equipped: {
+      characterSkins: { ...equipped.characterSkins },
+      weaponSkins: { ...equipped.weaponSkins },
+      ornament: equipped.ornament ?? null,
+      pet: equipped.pet ?? null,
+      effect: equipped.effect ?? null
+    }
+  }
 }
 
 function asCount(value: unknown): number {
@@ -238,6 +293,34 @@ function legacyMetaRefund(purchased: unknown): number {
   return total
 }
 
+const EXCLUSIVE_PET = 'shikigami'
+
+function hydrateOwnedCosmetics(raw: unknown): string[] {
+  const owned = new Set<string>()
+  if (Array.isArray(raw)) {
+    for (const id of raw) if (id === EXCLUSIVE_PET) owned.add(EXCLUSIVE_PET)
+  }
+  owned.add(EXCLUSIVE_PET)
+  return [...owned]
+}
+
+/** Equipa el familiar la primera vez que entra en la colección. Si ya lo tenías y lo quitaste, se queda quitado. */
+function hydratePet(pet: unknown, ownedRaw: unknown): string | null {
+  if (pet === EXCLUSIVE_PET) return EXCLUSIVE_PET
+  const already = Array.isArray(ownedRaw) && ownedRaw.includes(EXCLUSIVE_PET)
+  return already ? null : EXCLUSIVE_PET
+}
+
+function sanitizeStringMap(raw: unknown): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (!raw || typeof raw !== 'object') return out
+  for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!/^[a-z0-9_]+$/.test(id) || typeof value !== 'string' || !/^[a-z0-9_]+$/.test(value)) continue
+    out[id] = value
+  }
+  return out
+}
+
 function sanitizeRanks(raw: unknown): Record<string, number> {
   const out: Record<string, number> = {}
   if (!raw || typeof raw !== 'object') return out
@@ -266,7 +349,8 @@ export function hydrateSave(raw: Partial<SaveData> | null | undefined): SaveData
     : []
   const season = typeof bp?.season === 'number' ? bp.season : BATTLE_PASS_SEASON
   const stats = { ...defaults.stats, ...raw.stats }
-  const lastCharacter = typeof raw.lastCharacter === 'string' && raw.lastCharacter ? raw.lastCharacter : defaults.lastCharacter
+  const playable = new Set(['sakura', 'rin', 'kaede', 'yuki', 'hikari', 'akane'])
+  const lastCharacter = typeof raw.lastCharacter === 'string' && playable.has(raw.lastCharacter) ? raw.lastCharacter : defaults.lastCharacter
   const characterStats = hydrateCharacterStats(raw.characterStats, lastCharacter, stats)
   const hadAccount = typeof raw.accountXp === 'number' && Number.isFinite(raw.accountXp)
   if (typeof raw.stats?.timePlayed !== 'number' || !Number.isFinite(raw.stats.timePlayed)) {
@@ -290,23 +374,28 @@ export function hydrateSave(raw: Partial<SaveData> | null | undefined): SaveData
     friendCode: friendCode.length === 6 ? friendCode : defaults.friendCode,
     friends,
     lastCharacter,
+    worldsReached: typeof raw.worldsReached === 'number' && raw.worldsReached >= 2 ? 2 : 1,
     starterWeapons: hydrateStarterWeapons(raw.starterWeapons),
     characterStats,
     stats,
     settings: hydrateSettings(raw.settings, defaults.settings),
-    unlockedCharacters: Array.isArray(raw.unlockedCharacters) ? raw.unlockedCharacters : defaults.unlockedCharacters,
-    unlockedWeapons: Array.isArray(raw.unlockedWeapons) ? raw.unlockedWeapons : defaults.unlockedWeapons,
+    unlockedCharacters: Array.isArray(raw.unlockedCharacters)
+      ? raw.unlockedCharacters.filter((id): id is string => typeof id === 'string' && playable.has(id))
+      : defaults.unlockedCharacters,
+    unlockedWeapons: Array.isArray(raw.unlockedWeapons)
+      ? raw.unlockedWeapons.filter((id): id is string => typeof id === 'string' && !id.startsWith('guitar') && !id.startsWith('flute'))
+      : defaults.unlockedWeapons,
     unlockedPassives: Array.isArray(raw.unlockedPassives) ? raw.unlockedPassives.filter((id): id is string => typeof id === 'string') : [],
     seenEnemies: Array.isArray(raw.seenEnemies)
       ? raw.seenEnemies.filter((n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n < 64)
       : [],
-    ownedCosmetics: Array.isArray(raw.ownedCosmetics) ? raw.ownedCosmetics : [],
+    ownedCosmetics: hydrateOwnedCosmetics(raw.ownedCosmetics),
     equipped: {
-      characterSkins: { ...equipped?.characterSkins },
-      weaponSkins: { ...equipped?.weaponSkins },
-      ornament: equipped?.ornament ?? null,
-      pet: equipped?.pet ?? null,
-      effect: equipped?.effect ?? null
+      characterSkins: sanitizeStringMap(equipped?.characterSkins),
+      weaponSkins: {},
+      ornament: null,
+      pet: hydratePet(equipped?.pet, raw.ownedCosmetics),
+      effect: null
     },
     battlePass:
       season === BATTLE_PASS_SEASON
@@ -317,6 +406,7 @@ export function hydrateSave(raw: Partial<SaveData> | null | undefined): SaveData
             claimedFree: Array.isArray(bp?.claimedFree) ? bp.claimedFree : [],
             claimedPremium: Array.isArray(bp?.claimedPremium) ? bp.claimedPremium : []
           }
-        : { ...defaults.battlePass }
+        : { ...defaults.battlePass },
+    devUnlock: hydrateDevUnlock(raw.devUnlock)
   }
 }

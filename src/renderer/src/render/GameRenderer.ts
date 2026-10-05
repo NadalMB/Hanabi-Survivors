@@ -380,6 +380,8 @@ export class GameRenderer {
       const face = targetX < x ? -1 : 1
       s.scale.set(face * sc * (1 + bob * 0.05), sc * (1 - bob * 0.05))
       s.position.set(x, y)
+      s.rotation = 0
+      s.alpha = 1
       s.tint = 0xffffff
       if (elite) {
         const g = this.eliteGlows.next(t.glow)
@@ -633,17 +635,22 @@ export class GameRenderer {
       const skinned = this.skinTex(world.players[pr.owner[i]]?.loadout, this.visualFamily(v))
       const s = this.projectiles.next(skinned ?? t.projectiles[v])
       s.position.set(x, y)
-      const scale = (pr.radius[i] / VISUAL_BASE_RADIUS[v]) * (glow ? 1.22 : 1)
+      const hitScale = pr.radius[i] / (VISUAL_BASE_RADIUS[v] || 1)
+      const scale = hitScale * 2 * (glow ? 1.22 : 1)
       s.scale.set(scale)
       const fallback = v === ProjVisual.Fuuma ? 0xc9a8ff : 0xffffff
       const tint = this.projectileTint(world, pr.owner[i], v, fallback)
       s.tint = glow && !skinned ? 0xffe7a0 : tint
       const aim = Math.atan2(pr.vy[i], pr.vx[i])
-      const pointsUp = v === ProjVisual.Foxfire || v === ProjVisual.SpiritFlame || (skinned && (v === ProjVisual.Talisman || v === ProjVisual.Seal || v === ProjVisual.Kunai || v === ProjVisual.Rocket))
+      const pointsUp =
+        v === ProjVisual.Foxfire ||
+        v === ProjVisual.SpiritFlame ||
+        v === ProjVisual.Talisman ||
+        v === ProjVisual.Seal ||
+        (skinned && (v === ProjVisual.Kunai || v === ProjVisual.Rocket))
       s.rotation = aim + (pointsUp ? Math.PI / 2 : 0)
       if (v === ProjVisual.Foxfire || v === ProjVisual.SpiritFlame || glow) s.scale.set(scale * (1 + Math.sin(this.time * 14 + i) * 0.08))
-      const shown = Math.abs(s.scale.x)
-      s.alpha = shown <= 1.45 ? 1 : Math.max(0.32, 1 - (shown - 1.45) * 0.26)
+      s.alpha = hitScale <= 1.45 ? 1 : Math.max(0.32, 1 - (hitScale - 1.45) * 0.26)
       const speed = Math.hypot(pr.vx[i], pr.vy[i])
       if (speed > 30 && (v === ProjVisual.Shuriken || v === ProjVisual.Fuuma || v === ProjVisual.Kunai || v === ProjVisual.Rocket) && Math.random() < 0.45) {
         this.particles.emit(t.spark, x - (pr.vx[i] / speed) * 10, y - (pr.vy[i] / speed) * 10, {
@@ -728,11 +735,12 @@ export class GameRenderer {
             scale: (ev.ry * 2.4) / 96,
             scaleEnd: (ev.ry * 2.7) / 96,
             aspect: (ev.rx * 2) / 128 / ((ev.ry * 2.4) / 96),
-            flipX: ev.dir < 0,
+            rotation: ev.angle ?? 0,
+            flipX: ev.angle == null && ev.dir < 0,
             tint: slashTint,
             alpha: 0.95
           })
-          this.sfx.slash()
+          if (ev.lead !== false) this.sfx.slash()
           break
         }
         case 'strike': {

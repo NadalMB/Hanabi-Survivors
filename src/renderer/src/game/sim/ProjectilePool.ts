@@ -11,11 +11,12 @@ export const ProjVisual = {
   Shuriken: 5,
   Fuuma: 6,
   Rocket: 7,
-  Petal: 8
+  Petal: 8,
+  Note: 9
 } as const
 
 /** Collision radius each visual is drawn for; the renderer scales sprites by radius / base. */
-export const VISUAL_BASE_RADIUS: readonly number[] = [9, 10, 7, 13, 15, 14, 14, 10, 7]
+export const VISUAL_BASE_RADIUS: readonly number[] = [9, 10, 7, 13, 15, 14, 14, 10, 7, 8]
 
 /** Added to a visual id so the same art draws with a legendary gold glow. */
 export const PRESTIGE_GLOW = 32

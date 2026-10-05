@@ -83,7 +83,7 @@ export class HostSession extends SessionBase {
           loadout: p.id === HOST_PLAYER_ID ? loadoutFromSave(deps.save) : p.cosmetics
         }))
       : [{ id: HOST_PLAYER_ID, name: deps.save.settings.playerName, characterId: opts.characterId, weaponId: opts.weaponId, meta: metaMods(deps.save.metaUpgrades), loadout: loadoutFromSave(deps.save) }]
-    const world = new World({ seed, players })
+    const world = new World({ seed, players, catalog: deps.save.worldsReached })
     world.godMode = deps.debug && !!opts.god
     return world
   }

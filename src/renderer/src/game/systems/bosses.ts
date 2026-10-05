@@ -15,7 +15,7 @@ type BossPattern = 'kitsune' | 'orochi' | 'raijin' | 'yuki' | 'oni'
 
 function bossPattern(type: number): BossPattern {
   if (type === EnemyType.KitsuneBoss || type === EnemyType.Tamamo) return 'kitsune'
-  if (type === EnemyType.OrochiBoss || type === EnemyType.Umibozu) return 'orochi'
+  if (type === EnemyType.OrochiBoss || type === EnemyType.Umibozu || type === EnemyType.GateAsh) return 'orochi'
   if (type === EnemyType.RaijinBoss || type === EnemyType.Raiju) return 'raijin'
   if (type === EnemyType.YukiBoss || type === EnemyType.Hannya) return 'yuki'
   return 'oni'
@@ -28,6 +28,7 @@ function periodFor(type: number): number {
   if (pattern === 'raijin') return 3.5
   if (pattern === 'yuki') return 4.6
   if (type === EnemyType.Gate) return 5.4
+  if (type === EnemyType.GateAsh) return 6.2
   return 4.8
 }
 

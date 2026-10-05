@@ -6,7 +6,7 @@ import type { PlayerStats } from './stats'
 export type WeaponBehavior = 'slash' | 'talisman' | 'kunai' | 'orbit' | 'lightning' | 'aura' | 'boomerang' | 'firework'
 
 /** Replacement pattern used by chest prestiges. */
-export type WeaponForm = 'cross' | 'petals' | 'rain' | 'ring' | 'nova' | 'storm' | 'fan'
+export type WeaponForm = 'cross' | 'petals' | 'rain' | 'ring' | 'nova' | 'storm' | 'fan' | 'sides' | 'spin'
 
 export interface WeaponStats {
   damage: number
@@ -54,10 +54,10 @@ const lv = (text: string, mods: Partial<WeaponStats>): WeaponLevel => ({ text, m
 const CORE: Record<string, WeaponDef> = {
   katana: {
     id: 'katana',
-    name: 'Katana Sakura',
+    name: 'Abanico Carmesí',
     icon: 'katana',
     behavior: 'slash',
-    description: 'Corta horizontalmente hacia donde miras.',
+    description: 'Un tajo de viento hacia donde miras.',
     base: { damage: 14, cooldown: 1.05, amount: 1, area: 1, speed: 1, duration: 0.2, pierce: INF, knockback: 1, interval: 0.12 },
     levels: [
       lv('+1 corte en dirección opuesta.', { amount: 1 }),
@@ -76,7 +76,7 @@ const CORE: Record<string, WeaponDef> = {
     name: 'Senbonzakura',
     icon: 'sakura',
     behavior: 'slash',
-    description: 'Evolución de la Katana Sakura. Cortes devastadores que liberan pétalos afilados en todas direcciones.',
+    description: 'Evolución del Abanico Carmesí. Cortes devastadores que liberan pétalos afilados en todas direcciones.',
     base: { damage: 42, cooldown: 0.9, amount: 2, area: 1.5, speed: 1, duration: 0.25, pierce: INF, knockback: 1.3, interval: 0.1 },
     levels: [],
     evolution: true
@@ -134,7 +134,7 @@ const CORE: Record<string, WeaponDef> = {
   kunai_storm: {
     id: 'kunai_storm',
     name: 'Tormenta de Kunais',
-    icon: 'kunai_storm',
+    icon: 'kunai',
     behavior: 'kunai',
     description: 'Evolución del Kunai. Una lluvia de acero sin pausa.',
     base: { damage: 14, cooldown: 0.3, amount: 6, area: 1, speed: 1.3, duration: 1.2, pierce: 3, knockback: 0.4, interval: 0.04 },
@@ -194,7 +194,7 @@ const CORE: Record<string, WeaponDef> = {
   raijin_wrath: {
     id: 'raijin_wrath',
     name: 'Ira de Raijin',
-    icon: 'storm',
+    icon: 'thunder',
     behavior: 'lightning',
     description: 'Evolución del Tambor. Rayos en cadena que arrasan el campo.',
     base: { damage: 45, cooldown: 1.6, amount: 6, area: 1.8, speed: 1, duration: 0, pierce: INF, knockback: 0, interval: 0.06 },
@@ -254,7 +254,7 @@ const CORE: Record<string, WeaponDef> = {
   fuuma: {
     id: 'fuuma',
     name: 'Fūma Shuriken',
-    icon: 'fuuma',
+    icon: 'shuriken',
     behavior: 'boomerang',
     description: 'Evolución del Shuriken. Gigantescas cuchillas giratorias.',
     base: { damage: 38, cooldown: 1.5, amount: 2, area: 2.2, speed: 1.3, duration: 3, pierce: INF, knockback: 1, interval: 0.2 },

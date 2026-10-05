@@ -1,3 +1,4 @@
+import { weaponFamily } from '../data/prestige'
 import { WEAPONS, type WeaponDef } from '../data/weapons'
 import type { Player, WeaponSlot } from '../sim/Player'
 import { ProjKind, ProjVisual, visualIndex } from '../sim/ProjectilePool'
@@ -22,6 +23,7 @@ export function updateWeapons(world: World, dt: number): void {
     if (!p.alive) continue
     for (const w of p.weapons) {
       const def = WEAPONS[w.id]
+      if (!def) continue
       w.cooldown -= dt
       if (def.behavior === 'aura') {
         if (w.cooldown <= 0) {
@@ -75,11 +77,65 @@ function fire(world: World, p: Player, w: WeaponSlot, def: WeaponDef): void {
   }
 }
 
+function inArc(dx: number, dy: number, start: number, sweep: number): boolean {
+  if (sweep >= Math.PI * 2 - 0.001) return true
+  let delta = Math.atan2(dy, dx) - start
+  delta = ((delta % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)
+  return delta <= sweep
+}
+
+function fireSweep(world: World, p: Player, w: WeaponSlot, def: WeaponDef, full: boolean): void {
+  const s = w.stats
+  const e = world.enemies
+  const range = SLASH_RX * s.area * (full ? 1.15 : 1.05)
+  const originY = p.y - 6
+  const sweeps = full
+    ? [{ start: -Math.PI, sweep: Math.PI * 2 }]
+    : [
+        { start: (-95 * Math.PI) / 180, sweep: (190 * Math.PI) / 180 },
+        { start: Math.PI - (95 * Math.PI) / 180, sweep: (190 * Math.PI) / 180 }
+      ]
+  const steps = full ? 10 : 6
+  sweeps.forEach((arc, arcIndex) => {
+    const buf = world.grid.result
+    const n = world.grid.query(p.x, originY, range + world.maxEnemyRadius)
+    for (let k = 0; k < n; k++) {
+      const j = buf[k]
+      if (!e.alive[j]) continue
+      const dx = e.x[j] - p.x
+      const dy = e.y[j] - originY
+      const er = e.radius[j]
+      if (Math.hypot(dx, dy) > range + er) continue
+      if (!inArc(dx, dy, arc.start, arc.sweep)) continue
+      const dist = Math.max(1, Math.hypot(dx, dy))
+      damageEnemy(world, j, s.damage, dx / dist, dy / dist, s.knockback, p)
+    }
+    for (let i = 0; i <= steps; i++) {
+      const a = arc.start + (arc.sweep * i) / steps
+      const rx = range * 0.42
+      const ry = range * 0.22
+      world.events.push({
+        e: 'slash',
+        x: p.x + Math.cos(a) * range * 0.48,
+        y: originY + Math.sin(a) * range * 0.48,
+        dir: Math.cos(a) >= 0 ? 1 : -1,
+        rx,
+        ry,
+        angle: a,
+        evolved: !!def.evolution || full,
+        lead: arcIndex === 0 && i === 0,
+        playerId: p.id
+      })
+    }
+  })
+}
+
 function fireSlash(world: World, p: Player, w: WeaponSlot, def: WeaponDef): void {
+  if (def.form === 'sides') return fireSweep(world, p, w, def, false)
+  if (def.form === 'spin') return fireSweep(world, p, w, def, true)
   const s = w.stats
   const e = world.enemies
   const formed = def.form === 'cross' || def.form === 'petals'
-  const row = Math.floor(w.shot / 2)
   let aimX = w.shot % 2 === 0 ? p.facing : -p.facing
   let aimY = 0
   if (formed) {
@@ -91,7 +147,7 @@ function fireSlash(world: World, p: Player, w: WeaponSlot, def: WeaponDef): void
   const rx = SLASH_RX * s.area
   const ry = SLASH_RY * s.area
   const cx = p.x + aimX * rx * 0.6
-  const cy = p.y - 6 + aimY * rx * 0.45 + (formed ? 0 : (row % 2 === 0 ? -1 : 1) * Math.ceil(row / 2) * ry * 1.6)
+  const cy = p.y + (formed ? aimY * rx * 0.45 : 0)
   const buf = world.grid.result
   const n = world.grid.query(cx, cy, rx + world.maxEnemyRadius)
   for (let k = 0; k < n; k++) {
@@ -103,10 +159,22 @@ function fireSlash(world: World, p: Player, w: WeaponSlot, def: WeaponDef): void
     if (nx * nx + ny * ny > 1) continue
     damageEnemy(world, j, s.damage, aimX, aimY, s.knockback, p)
   }
-  world.events.push({ e: 'slash', x: cx, y: cy, dir, rx, ry, evolved: !!def.evolution || def.form === 'petals', playerId: p.id })
+  world.events.push({
+    e: 'slash',
+    x: cx,
+    y: cy,
+    dir,
+    rx,
+    ry,
+    angle: formed ? Math.atan2(aimY, aimX) : undefined,
+    evolved: !!def.evolution || def.form === 'petals',
+    playerId: p.id
+  })
 
   if (def.evolution || def.form === 'petals') {
     const glow = (def.visual ?? 0) >= 32
+    const musical = weaponFamily(def.id) === 'guitar'
+    const note = musical ? ProjVisual.Note : ProjVisual.Petal
     const petals = glow ? 14 : def.form === 'petals' ? 8 : 6
     const offset = world.rng.next() * Math.PI
     for (let k = 0; k < petals; k++) {
@@ -114,7 +182,7 @@ function fireSlash(world: World, p: Player, w: WeaponSlot, def: WeaponDef): void
       const speed = 420 * s.speed
       world.projectiles.spawn({
         kind: ProjKind.Linear,
-        visual: glow ? (def.visual ?? ProjVisual.Petal) : ProjVisual.Petal,
+        visual: glow ? (def.visual ?? note) : note,
         owner: p.index,
         x: p.x,
         y: p.y,
@@ -139,7 +207,7 @@ function fireTalisman(world: World, p: Player, w: WeaponSlot, def: WeaponDef): v
   const speed = 380 * s.speed
   world.projectiles.spawn({
     kind: ProjKind.Linear,
-    visual: def.evolution ? ProjVisual.Seal : ProjVisual.Talisman,
+    visual: def.visual ?? (def.evolution ? ProjVisual.Seal : ProjVisual.Talisman),
     owner: p.index,
     x: p.x,
     y: p.y - 4,

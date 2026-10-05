@@ -349,15 +349,30 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
-  padding-bottom: 16px;
+  justify-content: center;
+  padding: 7vh 4vw 28px;
+  gap: 18px;
 }
 
 .hero-portrait {
-  height: min(50vh, 500px);
+  height: min(32vh, 280px);
+  width: auto;
+  max-width: 70%;
+  object-fit: contain;
+  flex: 0 1 auto;
+  min-height: 0;
   image-rendering: auto;
-  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.55));
   animation: hero-float 3.2s ease-in-out infinite alternate, hero-in 900ms 200ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+
+.hero-portrait.hero-swap {
+  animation: hero-swap 420ms ease, hero-float 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes hero-swap {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
 }
 
 @keyframes hero-float {
@@ -378,8 +393,11 @@
 }
 
 .hero-plate {
-  margin-top: -20px;
-  padding: 10px 40px;
+  position: relative;
+  z-index: 2;
+  flex: none;
+  margin-top: 0;
+  padding: 10px 40px 14px;
   text-align: center;
   background: linear-gradient(90deg, transparent, rgba(20, 10, 40, 0.85) 20%, rgba(20, 10, 40, 0.85) 80%, transparent);
 }
@@ -521,8 +539,9 @@
 
 .char-card-img {
   position: absolute;
-  top: 6%;
-  height: 78%;
+  top: 8%;
+  height: 74%;
+  image-rendering: auto;
   filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
 }
 
@@ -578,9 +597,55 @@
   background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--accent) 40%, transparent), transparent 65%);
 }
 
+.detail-art.has-skins {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  justify-items: center;
+  gap: 6px;
+}
+
+.skin-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.skin-arrow {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(10, 4, 24, 0.55);
+  color: #fff6ea;
+  font: 400 34px/1 var(--font-display);
+  cursor: pointer;
+}
+
+.skin-arrow:hover {
+  background: color-mix(in srgb, var(--accent) 45%, rgba(10, 4, 24, 0.8));
+}
+
+.skin-rarity {
+  margin-top: 4px;
+  font: 700 12px/1 var(--font-ui);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.skin-rarity.epic {
+  color: #c084fc;
+}
+
+.skin-name {
+  font: 400 18px/1.2 var(--font-display);
+  text-align: center;
+}
+
 .detail-portrait {
-  max-height: 52vh;
-  max-width: 100%;
+  max-height: 42vh;
+  max-width: min(100%, 340px);
+  image-rendering: auto;
   filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.6));
   animation: hero-float 3s ease-in-out infinite alternate;
 }
@@ -1558,6 +1623,37 @@ img.silhouette,
   width: 100%;
 }
 
+/* ------------------------------------------------------------------ coming soon */
+
+.coming-soon {
+  margin: 8vh auto 0;
+  max-width: 560px;
+  text-align: center;
+  padding: 36px 28px;
+  border-radius: 22px;
+  background: rgba(18, 8, 32, 0.72);
+  border: 1px solid rgba(255, 209, 102, 0.35);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.coming-soon-kicker {
+  letter-spacing: 0.28em;
+  font: 700 13px/1 var(--font-ui);
+  color: #ffd166;
+}
+
+.coming-soon-title {
+  margin: 12px 0 8px;
+  font: 400 42px/1.1 var(--font-display);
+}
+
+.coming-soon-text {
+  margin: 0;
+  color: #d7cbe6;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
 /* ------------------------------------------------------------------ battle pass */
 
 .pass-head {
@@ -1846,8 +1942,9 @@ img.silhouette,
 }
 
 .album-portrait {
-  max-height: 38vh;
-  max-width: 100%;
+  max-height: 36vh;
+  max-width: min(100%, 320px);
+  image-rendering: auto;
   filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.55));
 }
 
@@ -1977,6 +2074,21 @@ img.silhouette,
 
 .profile-name {
   width: min(360px, 100%);
+}
+
+.profile-dev {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.profile-dev-note {
+  flex: 1;
+  min-width: 220px;
+  margin: 0;
+  font: 600 14px/1.35 var(--font-body);
+  color: #e6dcff;
 }
 
 .profile-level-label {

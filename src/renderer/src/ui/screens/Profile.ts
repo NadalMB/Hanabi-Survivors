@@ -1,13 +1,64 @@
 import { ACCOUNT_LEVEL_CAP, accountXpProgress } from '@shared/account'
+import type { BattlePassSave, CosmeticLoadout, SaveData } from '@shared/save'
 import type { App } from '@/App'
 import { CHARACTER_ORDER, CHARACTERS } from '@/game/data/characters'
 import { COSMETIC_ORDER } from '@/game/data/cosmetics'
 import { ENEMIES } from '@/game/data/enemies'
 import { skillPointsLeft } from '@/game/data/meta'
 import { PASSIVES } from '@/game/data/passives'
+import { PASS_LEVELS } from '@/game/data/battlePass'
 import { WEAPONS } from '@/game/data/weapons'
 import { el, formatTime } from '../dom'
 import { screenFrame } from './common'
+
+function clonePass(pass: BattlePassSave): BattlePassSave {
+  return { season: pass.season, xp: pass.xp, premium: pass.premium, claimedFree: [...pass.claimedFree], claimedPremium: [...pass.claimedPremium] }
+}
+
+function cloneLoadout(loadout: CosmeticLoadout): CosmeticLoadout {
+  return {
+    characterSkins: { ...loadout.characterSkins },
+    weaponSkins: { ...loadout.weaponSkins },
+    ornament: loadout.ornament,
+    pet: loadout.pet,
+    effect: loadout.effect
+  }
+}
+
+/** Swaps the whole catalog in, or puts the saved profile back. Gold, level and stats stay. */
+function toggleUnlockAll(save: SaveData): void {
+  if (save.devUnlock) {
+    const back = save.devUnlock
+    save.unlockedCharacters = [...back.unlockedCharacters]
+    save.unlockedWeapons = [...back.unlockedWeapons]
+    save.unlockedPassives = [...back.unlockedPassives]
+    save.seenEnemies = [...back.seenEnemies]
+    save.ownedCosmetics = [...back.ownedCosmetics]
+    save.worldsReached = back.worldsReached
+    save.battlePass = clonePass(back.battlePass)
+    save.equipped = cloneLoadout(back.equipped)
+    save.devUnlock = null
+    return
+  }
+  save.devUnlock = {
+    unlockedCharacters: [...save.unlockedCharacters],
+    unlockedWeapons: [...save.unlockedWeapons],
+    unlockedPassives: [...save.unlockedPassives],
+    seenEnemies: [...save.seenEnemies],
+    ownedCosmetics: [...save.ownedCosmetics],
+    worldsReached: save.worldsReached,
+    battlePass: clonePass(save.battlePass),
+    equipped: cloneLoadout(save.equipped)
+  }
+  save.unlockedCharacters = [...CHARACTER_ORDER]
+  save.unlockedWeapons = Object.keys(WEAPONS)
+  save.unlockedPassives = Object.keys(PASSIVES)
+  save.seenEnemies = ENEMIES.map((enemy) => enemy.type)
+  save.ownedCosmetics = [...COSMETIC_ORDER]
+  save.worldsReached = Math.max(save.worldsReached, 2)
+  const claimed = Array.from({ length: PASS_LEVELS }, (_, index) => index)
+  save.battlePass = { ...save.battlePass, premium: true, xp: 2_000_000, claimedFree: claimed, claimedPremium: claimed }
+}
 
 function formatPlayed(seconds: number): string {
   const total = Math.max(0, Math.floor(seconds))
@@ -60,6 +111,16 @@ export function profile(app: App): HTMLElement {
   })
   pointsRow.append(openTree)
 
+  const dev = el('div', 'profile-dev')
+  const devBtn = el('button', `btn${save.devUnlock ? '' : ' primary'}`, save.devUnlock ? 'Volver a mi perfil' : 'Desbloquear todo')
+  devBtn.addEventListener('click', () => {
+    toggleUnlockAll(save)
+    void app.persist()
+    app.sfx.ui()
+    app.profile()
+  })
+  dev.append(devBtn, el('p', 'profile-dev-note', 'Botón de prueba, hasta que el juego esté terminado. El oro, el nivel y las estadísticas no cambian.'))
+
   const stats = save.stats
   const grid = el('div', 'profile-stats')
   const cell = (label: string, value: string): void => {
@@ -76,7 +137,6 @@ export function profile(app: App): HTMLElement {
   cell('Armas', `${save.unlockedWeapons.length} / ${Object.keys(WEAPONS).length}`)
   cell('Pasivas', `${save.unlockedPassives.length} / ${Object.keys(PASSIVES).length}`)
   cell('Enemigos', `${save.seenEnemies.length} / ${ENEMIES.length}`)
-  cell('Cosméticos', `${save.ownedCosmetics.length} / ${COSMETIC_ORDER.length}`)
 
   const cast = el('div', 'profile-cast')
   cast.append(el('div', 'profile-cast-title', 'HEROÍNAS'))
@@ -99,6 +159,6 @@ export function profile(app: App): HTMLElement {
     }
   }
 
-  frame.body.append(hero, pointsRow, grid, cast)
+  frame.body.append(hero, pointsRow, dev, grid, cast)
   return frame.root
 }

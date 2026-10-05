@@ -2,6 +2,34 @@ import { CanvasSource, Texture } from 'pixi.js'
 import { CHARACTERS, type Accessory, type CharacterDef, type CharacterPalette } from '@/game/data/characters'
 import { COSMETICS, type CosmeticDef, type EffectKind, type OrnamentKind, type PetKind } from '@/game/data/cosmetics'
 import { ENEMIES } from '@/game/data/enemies'
+import sakuraCast from '../assets/characters/sakura.png'
+import rinCast from '../assets/characters/rin.png'
+import kaedeCast from '../assets/characters/kaede.png'
+import yukiCast from '../assets/characters/yuki.png'
+import hikariCast from '../assets/characters/hikari.png'
+import akaneCast from '../assets/characters/akane.png'
+import oniBossArt from '../assets/bosses/oni.png'
+import shutenBossArt from '../assets/bosses/shuten.png'
+import kitsuneBossArt from '../assets/bosses/kitsune.png'
+import orochiBossArt from '../assets/bosses/orochi.png'
+import raijinBossArt from '../assets/bosses/raijin.png'
+import yukiBossArt from '../assets/bosses/yuki.png'
+import wispArt from '../assets/enemies/wisp.png'
+import impArt from '../assets/enemies/imp.png'
+import crowArt from '../assets/enemies/crow.png'
+import kasaArt from '../assets/enemies/kasa.png'
+import yureiArt from '../assets/enemies/yurei.png'
+import bruteArt from '../assets/enemies/brute.png'
+import spiderArt from '../assets/enemies/spider.png'
+import kodamaArt from '../assets/enemies/kodama.png'
+import tenguArt from '../assets/enemies/tengu.png'
+import nurikabeArt from '../assets/enemies/nurikabe.png'
+import chochinArt from '../assets/enemies/chochin.png'
+import kappaArt from '../assets/enemies/kappa.png'
+import nueArt from '../assets/enemies/nue.png'
+import omamoriProj from '../assets/icons/omamori.png'
+import sealProj from '../assets/icons/seal.png'
+import shikigamiArt from '../assets/pets/shikigami.png'
 
 /** Textures are painted at 2x and exposed at logical size, so they stay crisp when zoomed. */
 const RES = 2
@@ -1084,7 +1112,46 @@ function tusk(ctx: Ctx, x: number, y: number, s: number, flip = 1): void {
   ctx.fill()
 }
 
+function drawIbaraki(ctx: Ctx, s: number): void {
+  const c = s / 2
+  const r = s * 0.36
+  ctx.fillStyle = '#1a1020'
+  ctx.beginPath()
+  ctx.moveTo(c - r * 0.2, c - r * 0.7)
+  ctx.quadraticCurveTo(c + r * 0.1, c - r * 1.7, c + r * 0.55, c - r * 0.45)
+  ctx.quadraticCurveTo(c + r * 0.2, c - r * 1.05, c - r * 0.2, c - r * 0.7)
+  ctx.fill()
+  ellipse(ctx, c, c + r * 0.05, r * 0.72, r * 0.9, lin(ctx, c - r, c - r, c + r, c + r, [[0, '#f4efe6'], [1, '#c8b8d8']]))
+  ctx.fillStyle = '#2a1840'
+  ctx.beginPath()
+  ctx.moveTo(c - r * 0.7, c - r * 0.2)
+  ctx.quadraticCurveTo(c, c - r * 1.15, c + r * 0.85, c - r * 0.15)
+  ctx.lineTo(c + r * 0.4, c + r * 0.15)
+  ctx.lineTo(c - r * 0.45, c + r * 0.1)
+  ctx.fill()
+  yokaiEye(ctx, c - r * 0.18, c - r * 0.02, r * 0.16, '#c45cff')
+  yokaiEye(ctx, c + r * 0.22, c - r * 0.02, r * 0.16, '#ffd166')
+  ctx.fillStyle = '#fff'
+  ctx.fillRect(c - r * 0.22, c + r * 0.28, r * 0.5, r * 0.08)
+  ctx.strokeStyle = '#6b3a1c'
+  ctx.lineWidth = Math.max(4, r * 0.18)
+  ctx.beginPath()
+  ctx.moveTo(c + r * 0.35, c + r * 0.15)
+  ctx.lineTo(c + r * 1.15, c - r * 0.85)
+  ctx.stroke()
+  ellipse(ctx, c + r * 1.2, c - r * 0.95, r * 0.22, r * 0.16, '#5a3018')
+  ctx.fillStyle = '#3a1848'
+  ctx.beginPath()
+  ctx.ellipse(c - r * 0.85, c + r * 0.15, r * 0.28, r * 0.18, 0.4, 0, Math.PI * 2)
+  ctx.fill()
+}
+
 function drawEnemy(ctx: Ctx, key: string, s: number): void {
+  if (key === 'ibaraki') {
+    drawIbaraki(ctx, s)
+    glossStreak(ctx, s, s)
+    return
+  }
   drawEnemyBody(ctx, key, s)
   enemyOrnament(ctx, key, s)
   glossStreak(ctx, s, s)
@@ -2361,21 +2428,63 @@ function drawEnemyBody(ctx: Ctx, key: string, s: number): void {
 
 // ---------------------------------------------------------------- projectiles & fx
 
+function charmFromImage(img: HTMLImageElement, logicalH: number): HTMLCanvasElement {
+  const canvasH = Math.round(logicalH * RES)
+  const canvasW = Math.max(1, Math.round((img.width * canvasH) / img.height))
+  const canvas = document.createElement('canvas')
+  canvas.width = canvasW
+  canvas.height = canvasH
+  const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(img, 0, 0, canvasW, canvasH)
+  return canvas
+}
+
 function projectileCanvases(): HTMLCanvasElement[] {
-  const talisman = (gold: boolean): HTMLCanvasElement =>
-    paint(28, 16, (ctx) => {
-      roundRect(ctx, 3, 3, 22, 10, 1.5, lin(ctx, 0, 3, 0, 13, gold ? [[0, '#fff6d0'], [1, '#e9b84a']] : [[0, '#fffaf0'], [1, '#efdcb2']]))
-      ctx.strokeStyle = gold ? '#8a2bff' : '#d8243c'
-      ctx.lineWidth = 1.3
-      ctx.strokeRect(4.5, 4.5, 19, 7)
-      ctx.beginPath()
-      ctx.moveTo(8, 8)
-      ctx.lineTo(12, 6)
-      ctx.lineTo(13, 10)
-      ctx.lineTo(17, 6.5)
-      ctx.lineTo(20, 9.5)
-      ctx.stroke()
-    })
+  const ofuda = (gold: boolean): HTMLCanvasElement => {
+    const img = gold ? projectileCharms.seal : projectileCharms.talisman
+    if (img) return charmFromImage(img, 64)
+    return withGlow(
+      outlined(
+        paint(22, 36, (ctx) => {
+          roundRect(
+            ctx,
+            1.2,
+            1.2,
+            19.6,
+            33.6,
+            2,
+            lin(ctx, 0, 1, 0, 35, gold ? [[0, '#fff8dc'], [1, '#e8b34a']] : [[0, '#fffdf8'], [1, '#f3d7a2']])
+          )
+          ctx.strokeStyle = gold ? '#5b21b6' : '#b01028'
+          ctx.lineWidth = 2
+          ctx.strokeRect(4, 4, 14, 28)
+          ctx.strokeStyle = gold ? '#3b0764' : '#7f1020'
+          ctx.lineWidth = 2.2
+          ctx.beginPath()
+          ctx.moveTo(11, 8)
+          ctx.lineTo(11, 20)
+          ctx.moveTo(6.4, 12)
+          ctx.lineTo(15.6, 12)
+          ctx.moveTo(6.8, 16.4)
+          ctx.lineTo(15.2, 16.4)
+          ctx.stroke()
+          ctx.fillStyle = gold ? '#e11d48' : '#d0122c'
+          ctx.beginPath()
+          ctx.arc(11, 26.2, 4.1, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.fillStyle = '#fff6ea'
+          ctx.beginPath()
+          ctx.arc(11, 26.2, 1.5, 0, Math.PI * 2)
+          ctx.fill()
+        }),
+        1.8
+      ),
+      gold ? 'rgba(255,209,102,0.95)' : 'rgba(255,64,96,0.9)',
+      gold ? 5 : 4
+    )
+  }
 
   const flame = (inner: string, mid: string, outer: string): HTMLCanvasElement =>
     paint(36, 36, (ctx) => {
@@ -2420,8 +2529,8 @@ function projectileCanvases(): HTMLCanvasElement[] {
     })
 
   return [
-    withGlow(talisman(false), 'rgba(255,90,90,0.7)', 3),
-    withGlow(talisman(true), 'rgba(255,209,102,1)', 5),
+    ofuda(false),
+    ofuda(true),
     withGlow(
       paint(30, 12, (ctx) => {
         ctx.fillStyle = lin(ctx, 0, 2.5, 0, 9.5, [[0, '#ffffff'], [0.5, '#d4dcf5'], [1, '#6c78a3']])
@@ -2478,6 +2587,27 @@ function projectileCanvases(): HTMLCanvasElement[] {
         ellipse(ctx, 6, 5, 3, 1.3, 'rgba(255,255,255,0.8)')
       }),
       'rgba(255,120,190,1)',
+      3
+    ),
+    withGlow(
+      paint(18, 18, (ctx) => {
+        ctx.translate(9, 10)
+        ctx.fillStyle = '#1c0b26'
+        ctx.beginPath()
+        ctx.ellipse(0, 0, 4.2, 3.2, -0.4, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.strokeStyle = '#ffd166'
+        ctx.lineWidth = 1.6
+        ctx.beginPath()
+        ctx.moveTo(2.2, -2.4)
+        ctx.quadraticCurveTo(6, -8, 4, -1)
+        ctx.stroke()
+        ctx.fillStyle = '#fff6d0'
+        ctx.beginPath()
+        ctx.ellipse(-0.6, -0.4, 1.6, 1.1, -0.4, 0, Math.PI * 2)
+        ctx.fill()
+      }),
+      'rgba(255,209,102,0.9)',
       3
     )
   ]
@@ -2772,6 +2902,7 @@ function petEye(ctx: Ctx, x: number, y: number, iris: string): void {
 }
 
 function drawPet(ctx: Ctx, kind: PetKind): void {
+  if (kind === 'shikigami') return
   const c = 20
   const blush = (x: number, y: number): void => ellipse(ctx, x, y, 1.7, 0.85, 'rgba(255,120,150,0.55)')
   switch (kind) {
@@ -3553,14 +3684,147 @@ function skinnedDef(def: CosmeticDef): CharacterDef | null {
   return { ...base, id: def.id, palette: def.palette, pattern: def.pattern, tier }
 }
 
-export function createTextures(): GameTextures {
+const CAST_URLS: Record<string, string> = {
+  sakura: sakuraCast,
+  rin: rinCast,
+  kaede: kaedeCast,
+  yuki: yukiCast,
+  hikari: hikariCast,
+  akane: akaneCast
+}
+
+const BOSS_URLS: Record<string, string> = {
+  oniBoss: oniBossArt,
+  shutendoji: shutenBossArt,
+  kitsuneBoss: kitsuneBossArt,
+  orochiBoss: orochiBossArt,
+  raijinBoss: raijinBossArt,
+  yukiBoss: yukiBossArt,
+  wisp: wispArt,
+  imp: impArt,
+  crow: crowArt,
+  kasa: kasaArt,
+  yurei: yureiArt,
+  brute: bruteArt,
+  spider: spiderArt,
+  kodama: kodamaArt,
+  tengu: tenguArt,
+  nurikabe: nurikabeArt,
+  chochin: chochinArt,
+  kappa: kappaArt,
+  nue: nueArt
+}
+
+function loadImages(urls: Record<string, string>): Promise<Record<string, HTMLImageElement>> {
+  return Promise.all(
+    Object.entries(urls).map(
+      ([id, url]) =>
+        new Promise<[string, HTMLImageElement]>((resolve, reject) => {
+          const img = new Image()
+          img.onload = () => resolve([id, img])
+          img.onerror = () => reject(new Error(id))
+          img.src = url
+        })
+    )
+  ).then((pairs) => Object.fromEntries(pairs))
+}
+
+/** Painted character sheets. The top-right figure is Kaede even though the sheet labeled her Rin. */
+export function loadCastImages(): Promise<Record<string, HTMLImageElement>> {
+  return loadImages(CAST_URLS)
+}
+
+/** Painted bosses of the first world. */
+export function loadBossImages(): Promise<Record<string, HTMLImageElement>> {
+  return loadImages(BOSS_URLS)
+}
+
+const PET_URLS: Record<string, string> = {
+  shikigami: shikigamiArt
+}
+
+/** Painted familiars that replace the procedural pet sprites. */
+export function loadPetImages(): Promise<Record<string, HTMLImageElement>> {
+  return loadImages(PET_URLS)
+}
+
+let projectileCharms: Record<string, HTMLImageElement> = {}
+
+/** The flying ofuda uses the same charm art as the weapon icon. */
+export function loadProjectileCharms(): Promise<void> {
+  return loadImages({ talisman: omamoriProj, seal: sealProj }).then((imgs) => {
+    projectileCharms = imgs
+  })
+}
+
+/** On-screen height of a painted heroine, in world pixels. A little taller than the previous cut. */
+const CAST_LOGICAL_H = 82
+
+/** Places the full-resolution art so the waist matches the other chibis, without resampling. */
+function castCanvas(img: HTMLImageElement): { canvas: HTMLCanvasElement; resolution: number } {
+  const resolution = img.height / CAST_LOGICAL_H
+  const waist = img.height * 0.62
+  const canvasH = Math.max(img.height, Math.ceil(waist / PLAYER_ANCHOR_Y))
+  const canvas = document.createElement('canvas')
+  canvas.width = img.width
+  canvas.height = canvasH
+  const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(img, 0, PLAYER_ANCHOR_Y * canvasH - waist)
+  return { canvas, resolution }
+}
+
+/** Painted sticker, sized to a world height so the extra pixels stay sharp. */
+function paintedFollower(img: HTMLImageElement, logicalH: number): Texture {
+  const maxEdge = 512
+  const fit = Math.min(1, maxEdge / Math.max(img.width, img.height))
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.round(img.width * fit))
+  canvas.height = Math.max(1, Math.round(img.height * fit))
+  const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = fit < 1
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+  return toTexture(canvas, canvas.height / logicalH)
+}
+
+/** The original crop, unscaled, so menus are not stretching a blurred enlargement. */
+function castPortrait(img: HTMLImageElement): string {
+  const canvas = document.createElement('canvas')
+  canvas.width = img.width
+  canvas.height = img.height
+  const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(img, 0, 0)
+  return canvas.toDataURL()
+}
+
+export function createTextures(
+  cast: Record<string, HTMLImageElement> = {},
+  bosses: Record<string, HTMLImageElement> = {},
+  petsArt: Record<string, HTMLImageElement> = {}
+): GameTextures {
   const players: Record<string, Texture> = {}
   const portraits: Record<string, string> = {}
   for (const def of Object.values(CHARACTERS)) {
-    players[def.id] = toTexture(chibiCanvas(def))
-    portraits[def.id] = chibiCanvas(def, 6).toDataURL()
+    const painted = cast[def.id]
+    if (painted) {
+      const sheet = castCanvas(painted)
+      players[def.id] = toTexture(sheet.canvas, sheet.resolution)
+      portraits[def.id] = castPortrait(painted)
+    } else {
+      players[def.id] = toTexture(chibiCanvas(def))
+      portraits[def.id] = chibiCanvas(def, 6).toDataURL()
+    }
   }
   for (const cosmetic of Object.values(COSMETICS)) {
+    const painted = cast[cosmetic.id]
+    if (painted) {
+      const sheet = castCanvas(painted)
+      players[cosmetic.id] = toTexture(sheet.canvas, sheet.resolution)
+      portraits[cosmetic.id] = castPortrait(painted)
+      continue
+    }
     const skinned = skinnedDef(cosmetic)
     if (!skinned) continue
     players[cosmetic.id] = toTexture(chibiCanvas(skinned))
@@ -3571,6 +3835,24 @@ export function createTextures(): GameTextures {
   const enemiesWhite: Texture[] = []
   const enemyPortraits: string[] = []
   for (const def of ENEMIES) {
+    const painted = bosses[def.key]
+    if (painted) {
+      const maxEdge = 1024
+      const fit = Math.min(1, maxEdge / Math.max(painted.width, painted.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(painted.width * fit))
+      canvas.height = Math.max(1, Math.round(painted.height * fit))
+      const ctx = canvas.getContext('2d')!
+      ctx.imageSmoothingEnabled = fit < 1
+      ctx.imageSmoothingQuality = 'high'
+      ctx.drawImage(painted, 0, 0, canvas.width, canvas.height)
+      const logicalH = def.boss ? Math.max(150, def.radius * 2.8) : Math.max(28, def.radius * 2.25)
+      const resolution = canvas.height / logicalH
+      enemies.push(toTexture(canvas, resolution))
+      enemiesWhite.push(toTexture(silhouette(canvas, '#ffffff'), resolution))
+      enemyPortraits.push(castPortrait(painted))
+      continue
+    }
     const size = Math.max(34, def.radius * 2.8)
     const detail = def.boss ? 6 : 5
     const base = paint(size, size, (ctx) => drawEnemy(ctx, def.key, size), detail)
@@ -3589,7 +3871,8 @@ export function createTextures(): GameTextures {
     neko: toTexture(petCanvas('neko'), 4),
     lantern: toTexture(petCanvas('lantern'), 4),
     dragon: toTexture(petCanvas('dragon'), 4),
-    owl: toTexture(petCanvas('owl'), 4)
+    owl: toTexture(petCanvas('owl'), 4),
+    shikigami: petsArt.shikigami ? paintedFollower(petsArt.shikigami, 34) : toTexture(petCanvas('owl'), 4)
   } as const
 
   const ornaments = {
@@ -3635,7 +3918,12 @@ export function createTextures(): GameTextures {
   }
   for (const def of Object.values(COSMETICS)) {
     if (def.kind === 'weapon_skin') weaponSkins[def.id] = toTexture(weaponSkinCanvas(def.id))
-    previews[def.id] = def.kind === 'character_skin' ? portraits[def.id] : cosmeticPreview(def)
+    const paintedPet = def.kind === 'pet' ? petsArt[def.pet ?? ''] : undefined
+    previews[def.id] = paintedPet
+      ? castPortrait(paintedPet)
+      : def.kind === 'character_skin'
+        ? portraits[def.id]
+        : cosmeticPreview(def)
   }
 
   return {

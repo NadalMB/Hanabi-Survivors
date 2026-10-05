@@ -2,10 +2,11 @@ import { accountXpProgress } from '@shared/account'
 import { GAME_VERSION } from '@shared/constants'
 import type { CharacterRecord, SaveData } from '@shared/save'
 import type { App } from '@/App'
-import { CHARACTERS } from '@/game/data/characters'
+import { CHARACTERS, CHARACTER_ORDER } from '@/game/data/characters'
 import { skillPointsLeft } from '@/game/data/meta'
-import { el, formatTime } from '../dom'
+import { el, formatTime, whileMounted } from '../dom'
 import { goldPill, portraitFor } from './common'
+import { isUnlocked } from './CharacterSelect'
 
 function mostPlayedId(save: SaveData): string {
   let pick = CHARACTERS[save.lastCharacter] ? save.lastCharacter : 'sakura'
@@ -65,9 +66,9 @@ export function mainMenu(app: App): HTMLElement {
   }
   item('Jugar', 'Partida en solitario', () => app.characterSelect(), true)
   item('Cooperativo', 'Online con código o red local', () => app.coopMenu())
-  item('Tienda', 'Skins, mascotas y adornos · rota cada día', () => app.boutique())
-  item('Pase de batalla', 'Progresión con recompensas exclusivas', () => app.battlePass())
-  item('Álbum', 'Colección de heroínas, armas, pasivas y cosméticos', () => app.album())
+  item('Tienda', 'Próximamente', () => app.boutique())
+  item('Pase de batalla', 'El nivel sube. Las recompensas, próximamente', () => app.battlePass())
+  item('Álbum', 'Colección de heroínas, armas y enemigos', () => app.album())
   item('Habilidades', 'Árbol permanente por ramas', () => app.skills())
   item('Ajustes', 'Sonido y pantalla', () => app.settings())
   if (window.api) item('Salir', 'Cerrar el juego', () => window.api?.quit())
@@ -75,13 +76,39 @@ export function mainMenu(app: App): HTMLElement {
   left.append(logo, nav)
 
   const right = el('div', 'menu-right')
-  const charId = mostPlayedId(save)
-  const def = CHARACTERS[charId]
+  const owned = CHARACTER_ORDER.filter((id) => isUnlocked(app, id))
+  const roster = owned.length > 0 ? owned : (['sakura'] as const)
+  const featured = mostPlayedId(save)
+  let index = roster.findIndex((id) => id === featured)
+  if (index < 0) index = 0
   const portrait = el('img', 'hero-portrait') as HTMLImageElement
-  portrait.src = portraitFor(app, charId)
   portrait.draggable = false
   const plate = el('div', 'hero-plate')
-  plate.append(el('div', 'hero-kicker', 'LA MÁS JUGADA'), el('div', 'hero-name', def.name), el('div', 'hero-title', def.title), heroStats(save.characterStats[charId]))
+  const kicker = el('div', 'hero-kicker')
+  const name = el('div', 'hero-name')
+  const title = el('div', 'hero-title')
+  const stats = el('div', 'hero-stats')
+  plate.append(kicker, name, title, stats)
+  const showHero = (id: string): void => {
+    const def = CHARACTERS[id]
+    if (!def) return
+    portrait.src = portraitFor(app, id)
+    kicker.textContent = id === featured ? 'LA MÁS JUGADA' : 'DESBLOQUEADA'
+    name.textContent = def.name
+    title.textContent = def.title
+    const box = heroStats(save.characterStats[id])
+    stats.replaceChildren(...Array.from(box.childNodes))
+  }
+  showHero(roster[index])
+  if (roster.length > 1) {
+    whileMounted(root, () => {
+      index = (index + 1) % roster.length
+      portrait.classList.remove('hero-swap')
+      void portrait.offsetWidth
+      portrait.classList.add('hero-swap')
+      showHero(roster[index])
+    }, 4500)
+  }
   right.append(portrait, plate)
 
   const progress = accountXpProgress(save.accountXp)

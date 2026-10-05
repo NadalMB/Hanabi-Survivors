@@ -30,6 +30,8 @@ export interface WorldPlayerInit {
 export interface WorldOptions {
   seed: number
   players: WorldPlayerInit[]
+  /** 1 until this save has entered the second world. Gates the musician's weapons. */
+  catalog?: number
 }
 
 export type WorldState = 'running' | 'levelup' | 'gameover' | 'victory' | 'finale'
@@ -56,6 +58,8 @@ export class World {
   timeBank = 0
   /** 0 = Noche de Hanabi, 1 = Ceniza Carmesí. */
   realm = 0
+  /** Worlds this save has opened. 2 lets the guitar and flute appear. */
+  catalog = 1
   portalOpen = false
   portalOpenedAt = 0
   /** Multiplier already applied to living enemies since the portal opened. */
@@ -79,6 +83,7 @@ export class World {
 
   constructor(opts: WorldOptions) {
     this.seed = opts.seed >>> 0
+    this.catalog = opts.catalog && opts.catalog >= 2 ? 2 : 1
     this.rng = new Rng(this.seed)
     const n = opts.players.length
     this.players = opts.players.map((p, i) => {
@@ -164,6 +169,7 @@ export class World {
     this.timeBank += this.time
     this.time = 0
     this.realm += 1
+    this.catalog = Math.max(this.catalog, this.realm + 1)
     this.portalOpen = false
     this.portalOpenedAt = 0
     this.pressure = 1
@@ -259,14 +265,13 @@ export class World {
     const p = this.playerById(playerId)
     if (!p || !p.choices) return
     const skipped = index < 0
-    if (skipped && p.offer !== 'chest') return
     const choice = p.choices[index]
     const offer = p.offer
     if (!skipped) {
       if (!choice) return
       applyChoice(this, p, choice)
-      if (offer === 'level') p.pendingLevelUps = Math.max(0, p.pendingLevelUps - 1)
     }
+    if (offer === 'level') p.pendingLevelUps = Math.max(0, p.pendingLevelUps - 1)
     if (offer === 'chest') this.noteChestPick(p.id, skipped ? -1 : index)
     p.choices = null
     p.offer = null

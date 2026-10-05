@@ -151,16 +151,14 @@ export class LevelUpOverlay {
       chestBox.append(el('div', 'chest-lid'), el('div', 'chest-body'))
       nodes.unshift(chestBox)
     }
-    const hint = this.chest ? '1 o la nueva para aceptarla · 2 o la actual para rechazarla' : `Pulsa 1–${choices.length} o haz clic`
+    const hint = this.chest ? '1 o la nueva para aceptarla · 2 o la actual para rechazarla' : `Pulsa 1–${choices.length} o haz clic · 0 para rechazar`
     const foot = el('div', 'levelup-hint', hint)
-    if (this.chest) {
-      reject = el('button', 'chest-no locked', 'Rechazar')
-      reject.type = 'button'
-      reject.addEventListener('click', () => this.pick(-1))
-      const actions = el('div', 'chest-actions')
-      actions.append(reject)
-      nodes.push(cards, actions, foot, rarityOdds(luck))
-    } else nodes.push(cards, foot, rarityOdds(luck))
+    reject = el('button', this.chest ? 'chest-no locked' : 'chest-no', 'Rechazar')
+    reject.type = 'button'
+    reject.addEventListener('click', () => this.pick(-1))
+    const actions = el('div', 'chest-actions')
+    actions.append(reject)
+    nodes.push(cards, actions, foot, rarityOdds(luck))
     const glow = !this.chest && bestRarity(choices) !== 'common' ? ` rarity-${bestRarity(choices)}` : ''
     this.root.className = `overlay levelup interactive visible ${this.chest ? 'chest' : ''}${glow}`
     this.root.replaceChildren(...nodes)
@@ -283,7 +281,7 @@ export class LevelUpOverlay {
 
   private onKey = (e: KeyboardEvent): void => {
     if (!this.onPick) return
-    if (this.chest && this.count < 2 && e.key === '2') {
+    if ((this.chest && this.count < 2 && e.key === '2') || (!this.chest && e.key === '0')) {
       this.pick(-1)
       return
     }

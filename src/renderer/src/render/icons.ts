@@ -3,11 +3,71 @@
  * glow and drop shadows. Used by the DOM UI (as data URLs) and the HUD.
  */
 
+import fanSrc from '../assets/icons/fan.png'
+import omamoriSrc from '../assets/icons/omamori.png'
+import kunaiSrc from '../assets/icons/kunai.png'
+import kunaiStormSrc from '../assets/icons/kunai_storm.png'
+import foxfireSrc from '../assets/icons/foxfire.png'
+import nineTailsSrc from '../assets/icons/nine_tails.png'
+import barrierSrc from '../assets/icons/barrier.png'
+import toriiSrc from '../assets/icons/torii.png'
+import shurikenSrc from '../assets/icons/shuriken.png'
+import fuumaSrc from '../assets/icons/fuuma.png'
+import rocketSrc from '../assets/icons/rocket.png'
+import fireworkSrc from '../assets/icons/firework.png'
+import sakuraSrc from '../assets/icons/sakura.png'
+import sealSrc from '../assets/icons/seal.png'
+
 type Ctx = CanvasRenderingContext2D
+
+const GLYPH_SRCS: Record<string, string> = {
+  fan: fanSrc,
+  omamori: omamoriSrc,
+  kunai: kunaiSrc,
+  kunai_storm: kunaiStormSrc,
+  foxfire: foxfireSrc,
+  nine_tails: nineTailsSrc,
+  barrier: barrierSrc,
+  torii: toriiSrc,
+  shuriken: shurikenSrc,
+  fuuma: fuumaSrc,
+  rocket: rocketSrc,
+  firework: fireworkSrc,
+  sakura: sakuraSrc,
+  seal: sealSrc
+}
+
+const glyphs: Record<string, HTMLImageElement> = {}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error(src))
+    img.src = src
+  })
+}
+
+/** Painted weapon icons. Load them before any icon is cached. */
+export function loadIconArt(): Promise<void> {
+  return Promise.all(Object.entries(GLYPH_SRCS).map(async ([id, src]) => {
+    glyphs[id] = await loadImage(src)
+  })).then(() => undefined)
+}
+
+function paintGlyph(ctx: Ctx, img: HTMLImageElement | undefined): void {
+  if (!img) return
+  const max = 56
+  const scale = Math.min(max / img.width, max / img.height)
+  const w = img.width * scale
+  const h = img.height * scale
+  ctx.imageSmoothingEnabled = true
+  ctx.drawImage(img, 32 - w / 2, 32 - h / 2 + 1, w, h)
+}
 
 export type IconFrame = 'weapon' | 'common' | 'evolution' | 'passive' | 'passive-rare' | 'passive-epic' | 'passive-legendary' | 'meta' | 'rare' | 'epic' | 'legendary' | 'none'
 
-type PrestigeFamily = 'katana' | 'talisman' | 'kunai' | 'foxfire' | 'thunder' | 'aura' | 'shuriken' | 'hanabi'
+type PrestigeFamily = 'katana' | 'talisman' | 'kunai' | 'foxfire' | 'thunder' | 'aura' | 'shuriken' | 'hanabi' | 'guitar' | 'flute'
 type PrestigeTier = 'common' | 'rare' | 'epic' | 'legendary'
 export type PrestigeIconKey = `${PrestigeFamily}_${PrestigeTier}`
 
@@ -28,6 +88,10 @@ export type IconKey =
   | 'fuuma'
   | 'rocket'
   | 'firework'
+  | 'guitar'
+  | 'piano'
+  | 'flute'
+  | 'tambor'
   | 'crossed_swords'
   | 'hourglass'
   | 'leaf'
@@ -191,194 +255,35 @@ function drawFrame(ctx: Ctx, frame: Exclude<IconFrame, 'none'>): void {
 
 const CORE_SYMBOLS: Record<Exclude<IconKey, PrestigeIconKey>, (ctx: Ctx) => void> = {
   katana(ctx) {
-    ctx.save()
-    ctx.translate(32, 32)
-    ctx.rotate(-Math.PI / 4)
-    dropShadow(ctx)
-    ctx.beginPath()
-    ctx.moveTo(-3, -6)
-    ctx.lineTo(-3, -25)
-    ctx.quadraticCurveTo(1, -29, 3, -26)
-    ctx.lineTo(3, -6)
-    ctx.closePath()
-    fillStroke(ctx, lin(ctx, -3, 0, 3, 0, [[0, '#ffffff'], [0.5, '#dfe8ff'], [1, '#8b98c4']]), INK, 1.5)
-    noShadow(ctx)
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)'
-    ctx.lineWidth = 0.8
-    ctx.beginPath()
-    ctx.moveTo(-1.2, -8)
-    ctx.lineTo(-1.2, -24)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.ellipse(0, -5, 7, 2.5, 0, 0, Math.PI * 2)
-    fillStroke(ctx, lin(ctx, -7, 0, 7, 0, [[0, '#ffe08a'], [1, '#b8860b']]), INK, 1.5)
-    ctx.beginPath()
-    ctx.roundRect(-2.6, -3, 5.2, 16, 1.5)
-    fillStroke(ctx, '#3a1d5c', INK, 1.5)
-    ctx.fillStyle = '#ff5fa2'
-    for (let y = -1; y < 12; y += 4) {
-      ctx.beginPath()
-      ctx.moveTo(-2.6, y)
-      ctx.lineTo(0, y + 2)
-      ctx.lineTo(2.6, y)
-      ctx.lineTo(0, y - 2)
-      ctx.fill()
-    }
-    ctx.restore()
+    paintGlyph(ctx, glyphs.fan)
   },
 
   sakura(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(255,150,200,0.9)', 8)
-    for (let k = 0; k < 5; k++) {
-      ctx.save()
-      ctx.translate(32, 32)
-      ctx.rotate((k / 5) * Math.PI * 2)
-      ctx.beginPath()
-      ctx.moveTo(0, 0)
-      ctx.bezierCurveTo(-10, -6, -9, -18, -3, -20)
-      ctx.lineTo(0, -17)
-      ctx.lineTo(3, -20)
-      ctx.bezierCurveTo(9, -18, 10, -6, 0, 0)
-      ctx.fillStyle = lin(ctx, 0, 0, 0, -20, [[0, '#ff4f98'], [1, '#ffe0ef']])
-      ctx.fill()
-      ctx.restore()
-    }
-    noShadow(ctx)
-    ctx.fillStyle = rad(ctx, 32, 32, 6, [[0, '#fff6a8'], [1, '#ff9f1c']])
-    ctx.beginPath()
-    ctx.arc(32, 32, 4.5, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.fillStyle = '#ffe066'
-    for (let k = 0; k < 5; k++) {
-      const a = (k / 5) * Math.PI * 2 + 0.6
-      ctx.beginPath()
-      ctx.arc(32 + Math.cos(a) * 7.5, 32 + Math.sin(a) * 7.5, 1.3, 0, Math.PI * 2)
-      ctx.fill()
-    }
-    ctx.restore()
+    paintGlyph(ctx, glyphs.sakura)
   },
 
   talisman(ctx) {
-    ctx.save()
-    ctx.translate(32, 32)
-    ctx.rotate(0.18)
-    dropShadow(ctx)
-    ctx.beginPath()
-    ctx.roundRect(-9, -20, 18, 40, 2)
-    fillStroke(ctx, lin(ctx, 0, -20, 0, 20, [[0, '#fffaf0'], [1, '#f1dfb6']]), INK, 1.5)
-    noShadow(ctx)
-    ctx.strokeStyle = '#d8243c'
-    ctx.lineWidth = 1.2
-    ctx.strokeRect(-6.5, -17.5, 13, 35)
-    ctx.lineWidth = 2.2
-    ctx.beginPath()
-    ctx.moveTo(-3, -12)
-    ctx.lineTo(3, -12)
-    ctx.moveTo(0, -14)
-    ctx.lineTo(0, -4)
-    ctx.moveTo(-4, -6)
-    ctx.lineTo(4, -2)
-    ctx.moveTo(-3, 2)
-    ctx.quadraticCurveTo(4, 4, -1, 9)
-    ctx.moveTo(-3, 13)
-    ctx.lineTo(3, 13)
-    ctx.stroke()
-    ctx.fillStyle = '#d8243c'
-    ctx.beginPath()
-    ctx.arc(0, 6, 1.5, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.omamori)
   },
 
   seal(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(255,209,102,0.9)', 8)
-    ctx.strokeStyle = '#ffd166'
-    ctx.lineWidth = 1.5
-    ctx.beginPath()
-    ctx.arc(32, 32, 19, 0, Math.PI * 2)
-    ctx.stroke()
-    starPath(ctx, 32, 32, 5, 19, 7.5)
-    ctx.stroke()
-    noShadow(ctx)
-    ctx.translate(32, 32)
-    ctx.rotate(-0.15)
-    dropShadow(ctx)
-    ctx.beginPath()
-    ctx.roundRect(-7, -15, 14, 30, 2)
-    fillStroke(ctx, lin(ctx, 0, -15, 0, 15, [[0, '#fff3c4'], [1, '#e9b84a']]), INK, 1.5)
-    noShadow(ctx)
-    ctx.strokeStyle = '#8a2bff'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.moveTo(-3, -9)
-    ctx.lineTo(3, -9)
-    ctx.moveTo(0, -11)
-    ctx.lineTo(0, 9)
-    ctx.moveTo(-4, 1)
-    ctx.lineTo(4, 5)
-    ctx.stroke()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.seal)
   },
 
   kunai(ctx) {
-    drawKunai(ctx, 32, 32, -Math.PI / 4, 1)
+    paintGlyph(ctx, glyphs.kunai)
   },
 
   kunai_storm(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(160,220,255,0.8)', 6)
-    ctx.strokeStyle = 'rgba(180,230,255,0.9)'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.arc(32, 34, 20, Math.PI * 0.9, Math.PI * 1.9)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.arc(32, 34, 14, Math.PI * 1.1, Math.PI * 2.1)
-    ctx.stroke()
-    ctx.restore()
-    drawKunai(ctx, 22, 36, -Math.PI / 2.6, 0.75)
-    drawKunai(ctx, 42, 36, -Math.PI / 6, 0.75)
-    drawKunai(ctx, 32, 32, -Math.PI / 3.5, 0.9)
+    paintGlyph(ctx, glyphs.kunai_storm)
   },
 
   foxfire(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(90,200,255,1)', 12)
-    flamePath(ctx, 32, 38, 14, 26)
-    ctx.fillStyle = rad(ctx, 32, 40, 24, [[0, '#ffffff'], [0.4, '#7fe9ff'], [1, '#2a5cff']])
-    ctx.fill()
-    noShadow(ctx)
-    flamePath(ctx, 32, 40, 7, 13)
-    ctx.fillStyle = rad(ctx, 32, 40, 12, [[0, '#ffffff'], [1, 'rgba(200,250,255,0.6)']])
-    ctx.fill()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.foxfire)
   },
 
   nine_tails(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(255,240,190,1)', 12)
-    ctx.beginPath()
-    ctx.arc(32, 32, 13, 0, Math.PI * 2)
-    ctx.fillStyle = rad(ctx, 28, 28, 15, [[0, '#ffffff'], [1, '#ffd98a']])
-    ctx.fill()
-    noShadow(ctx)
-    ctx.fillStyle = 'rgba(220,170,90,0.35)'
-    ctx.beginPath()
-    ctx.arc(36, 35, 3, 0, Math.PI * 2)
-    ctx.arc(28, 37, 2, 0, Math.PI * 2)
-    ctx.fill()
-    for (let k = 0; k < 3; k++) {
-      const a = (k / 3) * Math.PI * 2 - Math.PI / 2
-      const x = 32 + Math.cos(a) * 21
-      const y = 32 + Math.sin(a) * 21
-      glowOn(ctx, 'rgba(200,110,255,1)', 8)
-      flamePath(ctx, x, y + 3, 5, 9)
-      ctx.fillStyle = rad(ctx, x, y + 3, 9, [[0, '#ffffff'], [0.5, '#e7a8ff'], [1, '#8a2bff']])
-      ctx.fill()
-    }
-    ctx.restore()
+    paintGlyph(ctx, glyphs.nine_tails)
   },
 
   thunder(ctx) {
@@ -428,144 +333,27 @@ const CORE_SYMBOLS: Record<Exclude<IconKey, PrestigeIconKey>, (ctx: Ctx) => void
   },
 
   barrier(ctx) {
-    ctx.save()
-    for (let k = 0; k < 3; k++) {
-      glowOn(ctx, 'rgba(255,110,190,1)', 8)
-      ctx.strokeStyle = `rgba(255,${160 + k * 30},${210 + k * 15},${0.95 - k * 0.2})`
-      ctx.lineWidth = 3 - k * 0.6
-      ctx.beginPath()
-      ctx.arc(32, 32, 9 + k * 6.5, 0, Math.PI * 2)
-      ctx.stroke()
-    }
-    noShadow(ctx)
-    ctx.fillStyle = rad(ctx, 32, 32, 9, [[0, '#ffffff'], [1, 'rgba(255,140,200,0.2)']])
-    ctx.beginPath()
-    ctx.arc(32, 32, 8, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.barrier)
   },
 
   torii(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(255,209,102,0.9)', 10)
-    ctx.fillStyle = rad(ctx, 32, 36, 20, [[0, 'rgba(255,240,180,0.9)'], [1, 'rgba(255,200,100,0)']])
-    ctx.fillRect(10, 14, 44, 40)
-    noShadow(ctx)
-    dropShadow(ctx)
-    const red = lin(ctx, 0, 12, 0, 54, [[0, '#ff5a4a'], [1, '#b3122a']])
-    ctx.beginPath()
-    ctx.moveTo(8, 16)
-    ctx.quadraticCurveTo(32, 20, 56, 16)
-    ctx.lineTo(55, 22)
-    ctx.quadraticCurveTo(32, 25, 9, 22)
-    ctx.closePath()
-    fillStroke(ctx, red, INK, 1.5)
-    ctx.beginPath()
-    ctx.rect(13, 27, 38, 4)
-    fillStroke(ctx, red, INK, 1.5)
-    ctx.beginPath()
-    ctx.rect(17, 22, 5, 32)
-    ctx.rect(42, 22, 5, 32)
-    fillStroke(ctx, red, INK, 1.5)
-    ctx.beginPath()
-    ctx.rect(29, 22, 6, 5)
-    fillStroke(ctx, '#2b1d33', INK, 1)
-    ctx.restore()
+    paintGlyph(ctx, glyphs.torii)
   },
 
   shuriken(ctx) {
-    drawShuriken(ctx, 32, 32, 20, '#f2f6ff', '#7d8bb0')
+    paintGlyph(ctx, glyphs.shuriken)
   },
 
   fuuma(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(190,140,255,0.9)', 10)
-    ctx.translate(32, 32)
-    for (let k = 0; k < 4; k++) {
-      ctx.rotate(Math.PI / 2)
-      ctx.beginPath()
-      ctx.moveTo(-4, -3)
-      ctx.quadraticCurveTo(-2, -18, 12, -24)
-      ctx.quadraticCurveTo(4, -12, 5, -2)
-      ctx.closePath()
-      ctx.fillStyle = lin(ctx, 0, 0, 10, -24, [[0, '#6a4cb0'], [1, '#eadcff']])
-      ctx.fill()
-      ctx.strokeStyle = INK
-      ctx.lineWidth = 1.3
-      ctx.stroke()
-    }
-    noShadow(ctx)
-    ctx.beginPath()
-    ctx.arc(0, 0, 6, 0, Math.PI * 2)
-    fillStroke(ctx, '#3a2d5c', INK, 1.5)
-    ctx.beginPath()
-    ctx.arc(0, 0, 2.2, 0, Math.PI * 2)
-    ctx.fillStyle = '#c9a8ff'
-    ctx.fill()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.fuuma)
   },
 
   rocket(ctx) {
-    ctx.save()
-    const colors = ['#ff5fa2', '#5ff2ff', '#ffd166']
-    for (let k = 0; k < 9; k++) {
-      glowOn(ctx, colors[k % 3], 6)
-      ctx.fillStyle = colors[k % 3]
-      ctx.beginPath()
-      ctx.arc(16 + Math.sin(k * 2.3) * 5 - k * 0.3, 48 - k * 0.2 + Math.cos(k * 1.7) * 5, 1.6, 0, Math.PI * 2)
-      ctx.fill()
-    }
-    noShadow(ctx)
-    ctx.translate(34, 30)
-    ctx.rotate(Math.PI / 4)
-    dropShadow(ctx)
-    ctx.beginPath()
-    ctx.roundRect(-5, -10, 10, 24, 2)
-    fillStroke(ctx, lin(ctx, -5, 0, 5, 0, [[0, '#ff6b5b'], [1, '#a3121f']]), INK, 1.5)
-    ctx.beginPath()
-    ctx.moveTo(-5, -10)
-    ctx.lineTo(0, -20)
-    ctx.lineTo(5, -10)
-    ctx.closePath()
-    fillStroke(ctx, lin(ctx, 0, -20, 0, -10, [[0, '#fff3b0'], [1, '#e0a020']]), INK, 1.5)
-    noShadow(ctx)
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(-5, -2, 10, 3)
-    ctx.fillStyle = '#ffd166'
-    ctx.beginPath()
-    ctx.moveTo(-5, 10)
-    ctx.lineTo(-9, 16)
-    ctx.lineTo(-5, 14)
-    ctx.moveTo(5, 10)
-    ctx.lineTo(9, 16)
-    ctx.lineTo(5, 14)
-    ctx.fill()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.rocket)
   },
 
   firework(ctx) {
-    ctx.save()
-    const colors = ['#ff5fa2', '#5ff2ff', '#ffd166', '#b38cff', '#7dff9a']
-    for (let k = 0; k < 16; k++) {
-      const a = (k / 16) * Math.PI * 2
-      const c = colors[k % colors.length]
-      glowOn(ctx, c, 8)
-      ctx.strokeStyle = c
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.moveTo(32 + Math.cos(a) * 6, 32 + Math.sin(a) * 6)
-      ctx.lineTo(32 + Math.cos(a) * 20, 32 + Math.sin(a) * 20)
-      ctx.stroke()
-      ctx.fillStyle = '#ffffff'
-      ctx.beginPath()
-      ctx.arc(32 + Math.cos(a) * 23, 32 + Math.sin(a) * 23, 1.8, 0, Math.PI * 2)
-      ctx.fill()
-    }
-    glowOn(ctx, '#ffffff', 10)
-    ctx.fillStyle = '#ffffff'
-    starPath(ctx, 32, 32, 4, 7, 2.5)
-    ctx.fill()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.firework)
   },
 
   crossed_swords(ctx) {
@@ -1121,71 +909,140 @@ const CORE_SYMBOLS: Record<Exclude<IconKey, PrestigeIconKey>, (ctx: Ctx) => void
     ctx.fill()
     ctx.fillRect(31, 40, 2, 6)
     ctx.restore()
+  },
+
+  guitar(ctx) {
+    ctx.save()
+    ctx.translate(32, 34)
+    ctx.rotate(-0.7)
+    drawGuitarGlyph(ctx, 1)
+    ctx.restore()
+  },
+
+  piano(ctx) {
+    ctx.save()
+    ctx.translate(32, 34)
+    dropShadow(ctx)
+    ctx.beginPath()
+    ctx.roundRect(-18, -6, 36, 16, 2)
+    fillStroke(ctx, lin(ctx, 0, -6, 0, 10, [[0, '#2a1240'], [1, '#100818']]), INK, 1.4)
+    noShadow(ctx)
+    ctx.fillStyle = '#fffaf0'
+    for (let i = 0; i < 8; i++) ctx.fillRect(-16 + i * 4, -5, 3, 8)
+    ctx.fillStyle = '#1c0b26'
+    for (const x of [-12, -4, 4, 12]) ctx.fillRect(x, -5, 1.6, 5)
+    ctx.fillStyle = '#ffd166'
+    ctx.fillRect(-18, 6, 36, 3)
+    ctx.restore()
+  },
+
+  flute(ctx) {
+    ctx.save()
+    ctx.translate(32, 32)
+    ctx.rotate(-0.35)
+    drawFluteGlyph(ctx, 1, '#e8f4ff')
+    ctx.restore()
+  },
+
+  tambor(ctx) {
+    ctx.save()
+    ctx.translate(32, 32)
+    dropShadow(ctx)
+    ctx.beginPath()
+    ctx.ellipse(0, 2, 16, 10, 0, 0, Math.PI * 2)
+    fillStroke(ctx, lin(ctx, -16, 0, 16, 0, [[0, '#ff5a3c'], [1, '#8a1020']]), INK, 1.5)
+    noShadow(ctx)
+    ctx.beginPath()
+    ctx.ellipse(0, -1, 11, 6, 0, 0, Math.PI * 2)
+    fillStroke(ctx, lin(ctx, 0, -8, 0, 6, [[0, '#fff6d0'], [1, '#e0b45a']]), INK, 1.2)
+    ctx.strokeStyle = '#1c0b26'
+    ctx.lineWidth = 1.2
+    ctx.beginPath()
+    ctx.moveTo(-14, 4)
+    ctx.lineTo(-20, 14)
+    ctx.moveTo(12, 2)
+    ctx.lineTo(20, -10)
+    ctx.stroke()
+    ctx.restore()
   }
 }
 
-function drawKunai(ctx: Ctx, x: number, y: number, angle: number, s: number): void {
+function drawGuitarGlyph(ctx: Ctx, scale: number): void {
   ctx.save()
-  ctx.translate(x, y)
-  ctx.rotate(angle)
-  ctx.scale(s, s)
+  ctx.scale(scale, scale)
   dropShadow(ctx)
   ctx.beginPath()
-  ctx.moveTo(0, -24)
-  ctx.lineTo(6, -6)
-  ctx.lineTo(0, -2)
-  ctx.lineTo(-6, -6)
+  ctx.moveTo(0, -16)
+  ctx.quadraticCurveTo(11, -8, 9, 6)
+  ctx.quadraticCurveTo(7, 16, 0, 16)
+  ctx.quadraticCurveTo(-7, 16, -9, 6)
+  ctx.quadraticCurveTo(-11, -8, 0, -16)
   ctx.closePath()
-  fillStroke(ctx, lin(ctx, -6, 0, 6, 0, [[0, '#ffffff'], [0.5, '#d4dcf5'], [1, '#6c78a3']]), INK, 1.5)
+  fillStroke(ctx, lin(ctx, -10, -8, 10, 14, [[0, '#ffd7a8'], [0.45, '#c47a3a'], [1, '#6b3414']]), INK, 1.4)
   noShadow(ctx)
-  ctx.strokeStyle = 'rgba(255,255,255,0.8)'
-  ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.moveTo(0, -21)
-  ctx.lineTo(0, -5)
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.roundRect(-2, -2, 4, 14, 1)
-  fillStroke(ctx, '#3a2d5c', INK, 1.3)
-  ctx.strokeStyle = '#3a2d5c'
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  ctx.arc(0, 15, 3.2, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.strokeStyle = '#ff4f6a'
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  ctx.moveTo(0, 18)
-  ctx.quadraticCurveTo(-5, 24, -2, 28)
-  ctx.stroke()
+  ctx.ellipse(0, 2, 3.2, 4, 0, 0, Math.PI * 2)
+  ctx.fillStyle = '#2a1240'
+  ctx.fill()
+  ctx.strokeStyle = '#ffd166'
+  ctx.lineWidth = 0.7
+  for (const x of [-2.2, -0.7, 0.8, 2.3]) {
+    ctx.beginPath()
+    ctx.moveTo(x, -22)
+    ctx.lineTo(x * 0.35, 14)
+    ctx.stroke()
+  }
+  ctx.fillStyle = '#3a1248'
+  ctx.fillRect(-1.6, -28, 3.2, 14)
+  ctx.fillStyle = '#ffd166'
+  ctx.fillRect(-3.4, -29, 6.8, 2.2)
   ctx.restore()
 }
 
-function drawShuriken(ctx: Ctx, x: number, y: number, r: number, light: string, dark: string): void {
+function drawKotoGlyph(ctx: Ctx): void {
   ctx.save()
   dropShadow(ctx)
-  starPath(ctx, x, y, 4, r, r * 0.3, Math.PI / 4)
-  fillStroke(ctx, lin(ctx, x - r, y - r, x + r, y + r, [[0, light], [1, dark]]), INK, 1.6)
+  ctx.beginPath()
+  ctx.moveTo(-16, 6)
+  ctx.quadraticCurveTo(-6, -8, 16, -2)
+  ctx.lineTo(16, 4)
+  ctx.quadraticCurveTo(-4, 2, -16, 12)
+  ctx.closePath()
+  fillStroke(ctx, lin(ctx, -16, 0, 16, 0, [[0, '#fff6d0'], [1, '#c47a22']]), INK, 1.4)
   noShadow(ctx)
-  ctx.strokeStyle = 'rgba(255,255,255,0.7)'
-  ctx.lineWidth = 1
-  for (let k = 0; k < 4; k++) {
-    const a = Math.PI / 4 + (k * Math.PI) / 2 - Math.PI / 2
+  ctx.strokeStyle = '#2a1240'
+  ctx.lineWidth = 0.7
+  for (let i = 0; i < 5; i++) {
     ctx.beginPath()
-    ctx.moveTo(x, y)
-    ctx.lineTo(x + Math.cos(a) * r * 0.9, y + Math.sin(a) * r * 0.9)
+    ctx.moveTo(-12 + i * 5, 4)
+    ctx.lineTo(4 + i * 2.2, -1)
     ctx.stroke()
   }
+  ctx.restore()
+}
+
+function drawFluteGlyph(ctx: Ctx, scale: number, metal: string): void {
+  ctx.save()
+  ctx.scale(scale, scale)
+  dropShadow(ctx)
   ctx.beginPath()
-  ctx.arc(x, y, r * 0.17, 0, Math.PI * 2)
-  ctx.fillStyle = INK
-  ctx.fill()
+  ctx.roundRect(-18, -3.2, 36, 6.4, 3)
+  fillStroke(ctx, lin(ctx, 0, -3, 0, 3, [[0, '#ffffff'], [1, metal]]), INK, 1.3)
+  noShadow(ctx)
+  ctx.fillStyle = '#1c0b26'
+  for (const x of [-8, -2, 4, 10]) {
+    ctx.beginPath()
+    ctx.arc(x, 0, 1.15, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.fillStyle = '#ffd166'
+  ctx.fillRect(14, -4.2, 3, 8.4)
   ctx.restore()
 }
 
 // ---------------------------------------------------------------- public API
 
-const PRESTIGE_FAMILIES = ['katana', 'talisman', 'kunai', 'foxfire', 'thunder', 'aura', 'shuriken', 'hanabi'] as const
+const PRESTIGE_FAMILIES = ['katana', 'talisman', 'kunai', 'foxfire', 'thunder', 'aura', 'shuriken', 'hanabi', 'guitar', 'flute'] as const
 
 function isPrestigeIcon(key: IconKey): key is PrestigeIconKey {
   const cut = key.lastIndexOf('_')
@@ -1195,9 +1052,42 @@ function isPrestigeIcon(key: IconKey): key is PrestigeIconKey {
   return (PRESTIGE_FAMILIES as readonly string[]).includes(family) && (tier === 'common' || tier === 'rare' || tier === 'epic' || tier === 'legendary')
 }
 
+const PRESTIGE_GLYPH: Partial<Record<PrestigeIconKey, string>> = {
+  katana_rare: 'fan',
+  katana_epic: 'fan',
+  katana_legendary: 'sakura',
+  talisman_rare: 'omamori',
+  talisman_epic: 'omamori',
+  talisman_legendary: 'omamori',
+  kunai_rare: 'kunai_storm',
+  kunai_epic: 'kunai',
+  kunai_legendary: 'kunai',
+  foxfire_rare: 'foxfire',
+  foxfire_epic: 'foxfire',
+  foxfire_legendary: 'foxfire',
+  aura_rare: 'barrier',
+  aura_epic: 'barrier',
+  aura_legendary: 'barrier',
+  shuriken_rare: 'fuuma',
+  shuriken_epic: 'shuriken',
+  shuriken_legendary: 'shuriken',
+  hanabi_rare: 'rocket',
+  hanabi_epic: 'rocket',
+  hanabi_legendary: 'rocket'
+}
+
 function drawPrestigeSymbol(ctx: Ctx, key: PrestigeIconKey): void {
+  const painted = glyphs[PRESTIGE_GLYPH[key] ?? '']
+  if (painted) {
+    paintGlyph(ctx, painted)
+    return
+  }
   const cut = key.lastIndexOf('_')
   const family = key.slice(0, cut) as PrestigeFamily
+  if (family === 'thunder') {
+    CORE_SYMBOLS.thunder(ctx)
+    return
+  }
   const tier = key.slice(cut + 1) as PrestigeTier
   const accent = tier === 'legendary' ? '#ffe08a' : tier === 'epic' ? '#e2c6ff' : tier === 'rare' ? '#9eebff' : '#f4f0ff'
   const metal = tier === 'legendary' ? '#fff1c2' : '#f4f7ff'
@@ -1338,7 +1228,9 @@ function drawPrestigeSymbol(ctx: Ctx, key: PrestigeIconKey): void {
     } else if (family === 'hanabi') {
       starPath(ctx, 0, 0, 5, 8, 3.5, 0.2)
       fillStroke(ctx, accent, INK, 1.1)
-    } else if (family === 'aura') {
+    } else if (family === 'guitar') drawGuitarGlyph(ctx, 0.72)
+    else if (family === 'flute') drawFluteGlyph(ctx, 0.72, metal)
+    else if (family === 'aura') {
       ctx.beginPath()
       ctx.arc(0, 0, 8, 0, Math.PI * 2)
       ctx.strokeStyle = accent
@@ -1400,44 +1292,6 @@ function drawPrestigeSymbol(ctx: Ctx, key: PrestigeIconKey): void {
     ctx.arc(0, 0, 7, 0, Math.PI * 2)
     fillStroke(ctx, rad(ctx, -2, -2, 8, [[0, '#fff'], [1, accent]]), INK, 1.2)
     for (let i = 0; i < 9; i++) flame((i / 9) * Math.PI * 2, 13)
-  } else if (family === 'thunder') {
-    const bolt = (x: number, scale: number): void => {
-      ctx.save()
-      ctx.translate(x, 0)
-      ctx.scale(scale, scale)
-      ctx.beginPath()
-      ctx.moveTo(2, -16)
-      ctx.lineTo(-4, 0)
-      ctx.lineTo(1, 0)
-      ctx.lineTo(-2, 16)
-      ctx.lineTo(6, -2)
-      ctx.lineTo(1, -2)
-      ctx.closePath()
-      fillStroke(ctx, lin(ctx, 0, -16, 0, 16, [[0, '#fff'], [1, accent]]), INK, 1.2)
-      ctx.restore()
-    }
-    if (tier === 'rare') {
-      bolt(-5, 0.7)
-      bolt(6, 0.85)
-    } else if (tier === 'epic') {
-      ctx.beginPath()
-      ctx.arc(0, 0, 15, 0, Math.PI * 2)
-      ctx.strokeStyle = accent
-      ctx.lineWidth = 1.5
-      ctx.stroke()
-      bolt(0, 0.9)
-    } else {
-      for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * Math.PI * 2
-        ctx.beginPath()
-        ctx.moveTo(Math.cos(a) * 6, Math.sin(a) * 6)
-        ctx.lineTo(Math.cos(a) * 16, Math.sin(a) * 16)
-        ctx.strokeStyle = accent
-        ctx.lineWidth = 1.4
-        ctx.stroke()
-      }
-      bolt(0, 1)
-    }
   } else if (family === 'aura') {
     ctx.beginPath()
     ctx.arc(0, 0, tier === 'legendary' ? 8 : 11, 0, Math.PI * 2)
@@ -1452,6 +1306,11 @@ function drawPrestigeSymbol(ctx: Ctx, key: PrestigeIconKey): void {
     }
     const n = tier === 'legendary' ? 8 : tier === 'epic' ? 6 : 4
     for (let i = 0; i < n; i++) petal((i / n) * Math.PI * 2, tier === 'rare' ? 8 : 12)
+  } else if (family === 'guitar') {
+    drawGuitarGlyph(ctx, tier === 'legendary' ? 0.95 : 0.82)
+    if (tier !== 'rare') drawKotoGlyph(ctx)
+  } else if (family === 'flute') {
+    drawFluteGlyph(ctx, tier === 'legendary' ? 1 : 0.85, tier === 'legendary' ? '#ffe08a' : metal)
   } else if (family === 'shuriken') {
     const points = tier === 'legendary' ? 8 : tier === 'epic' ? 4 : 4
     const count = tier === 'rare' ? 3 : 1

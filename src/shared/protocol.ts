@@ -46,7 +46,7 @@ export type GameEvent =
   | { e: 'player-hit'; playerId: PlayerId; amount: number }
   | { e: 'player-down'; playerId: PlayerId }
   | { e: 'revive'; playerId: PlayerId }
-  | { e: 'slash'; x: number; y: number; dir: number; rx: number; ry: number; evolved: boolean; playerId: PlayerId }
+  | { e: 'slash'; x: number; y: number; dir: number; rx: number; ry: number; evolved: boolean; playerId: PlayerId; angle?: number; lead?: boolean }
   | { e: 'strike'; x: number; y: number; radius: number; evolved: boolean; playerId: PlayerId }
   | { e: 'explosion'; x: number; y: number; radius: number; playerId: PlayerId }
   | { e: 'pickup'; kind: number; playerId: PlayerId; x: number; y: number }

@@ -115,7 +115,9 @@ export class Player {
   }
 
   refreshWeapon(w: WeaponSlot): void {
-    w.stats = computeWeaponStats(WEAPONS[w.id], w.level, this.stats, w.prestige)
+    const def = WEAPONS[w.id]
+    if (!def) return
+    w.stats = computeWeaponStats(def, w.level, this.stats, w.prestige)
   }
 
   weapon(id: string): WeaponSlot | undefined {
@@ -127,6 +129,7 @@ export class Player {
   }
 
   addWeapon(id: string): void {
+    if (!WEAPONS[id]) return
     this.weapons.push({
       id,
       level: 1,

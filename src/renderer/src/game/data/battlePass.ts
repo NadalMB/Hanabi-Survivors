@@ -18,61 +18,8 @@ export interface PassTier {
   premium: PassReward
 }
 
-const gold = (amount: number): PassReward => ({ type: 'gold', amount })
-const item = (id: string): PassReward => ({ type: 'cosmetic', id })
-
-/** Free track is modest; the flashy exclusives sit on the paid track. */
-export const PASS_TRACK: readonly PassTier[] = [
-  { free: gold(40), premium: item('will_wisp') },
-  { free: gold(50), premium: gold(120) },
-  { free: item('cherry_trail'), premium: item('halo') },
-  { free: gold(60), premium: gold(140) },
-  { premium: item('katana_crimson') },
-  { free: gold(70), premium: item('horns') },
-  { free: gold(80), premium: gold(160) },
-  { premium: item('fox_kit') },
-  { free: item('spark_burst'), premium: item('kunai_poison') },
-  { premium: item('sakura_midnight') },
-  { free: gold(90), premium: item('talisman_gold') },
-  { free: gold(100), premium: gold(200) },
-  { premium: item('fox_mask') },
-  { free: item('snowfall'), premium: item('shuriken_ice') },
-  { premium: item('rin_ocean') },
-  { free: gold(110), premium: item('lantern_orb') },
-  { free: gold(120), premium: gold(220) },
-  { premium: item('kaede_moon') },
-  { free: item('paper_chochin'), premium: item('foxfire_azure') },
-  { premium: item('yuki_blossom') },
-  { free: gold(140), premium: item('umbrella') },
-  { free: gold(150), premium: item('hanabi_galaxy') },
-  { premium: item('hikari_ivory') },
-  { free: item('ember_wake'), premium: item('thunder_gold') },
-  { premium: item('akane_jade') },
-  { free: gold(160), premium: item('snow_owl') },
-  { free: gold(180), premium: item('thunder_veil') },
-  { premium: item('spirit_wings') },
-  { free: gold(200), premium: item('moon_disk') },
-  { premium: item('sakura_celestial') },
-  { free: gold(220), premium: item('rin_shadowmiko') },
-  { free: gold(240), premium: item('kaede_phantom') },
-  { premium: item('yuki_aurora') },
-  { free: gold(260), premium: item('hikari_raijin') },
-  { premium: item('akane_empress') },
-  { free: gold(280), premium: item('katana_phoenix') },
-  { premium: item('talisman_divine') },
-  { free: gold(300), premium: item('foxfire_ninefold') },
-  { premium: item('star_dust') },
-  { free: gold(400), premium: item('mini_dragon') },
-  ...Array.from({ length: 60 }, (_, i): PassTier => {
-    const level = 41 + i
-    const freeGold = 80 + level * 4
-    const premGold = 200 + level * 10
-    return {
-      free: level % 2 === 0 ? gold(freeGold) : undefined,
-      premium: level % 10 === 0 ? gold(premGold * 2) : gold(premGold)
-    }
-  })
-]
+/** Rewards stay empty until the season is ready. Levels still advance. */
+export const PASS_TRACK: readonly PassTier[] = []
 
 export function passLevel(xp: number): number {
   let level = 0

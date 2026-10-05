@@ -50,6 +50,7 @@ export class ClientSession extends SessionBase {
       deps,
       new World({
         seed: 0,
+        catalog: deps.save.worldsReached,
         players: players.map((p) => ({
           id: p.id,
           name: p.name,
@@ -224,6 +225,7 @@ export class ClientSession extends SessionBase {
     this.applier.reset()
     this.world = new World({
       seed,
+      catalog: this.deps.save.worldsReached,
       players: this.roster.map((p) => ({
         id: p.id,
         name: p.name,

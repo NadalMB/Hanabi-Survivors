@@ -444,18 +444,23 @@ function syncLoadout(
     for (const s of passives) p.passives.push({ ...s, power: s.power || s.level })
     p.recomputeStats()
   }
+  const known = weapons.filter((w) => WEAPONS[w.id])
   const weaponKey = (id: string, level: number, prestige: readonly number[]): string => `${id}:${level}:${prestige.join(',')}`
-  if (weapons.map((w) => weaponKey(w.id, w.level, w.prestige)).join() !== p.weapons.map((w) => weaponKey(w.id, w.level, w.prestige)).join()) {
+  if (known.map((w) => weaponKey(w.id, w.level, w.prestige)).join() !== p.weapons.map((w) => weaponKey(w.id, w.level, w.prestige)).join()) {
     p.weapons.length = 0
-    for (const w of weapons) p.addWeapon(w.id)
+    for (const w of known) p.addWeapon(w.id)
     p.weapons.forEach((slot, i) => {
-      slot.level = weapons[i].level
-      slot.prestige = weapons[i].prestige
+      const source = known[i]
+      if (!source || !WEAPONS[slot.id]) return
+      slot.level = source.level
+      slot.prestige = source.prestige
       slot.stats = computeWeaponStats(WEAPONS[slot.id], slot.level, p.stats, slot.prestige)
     })
   }
   p.weapons.forEach((slot, i) => {
-    slot.stats.area = weapons[i].area
-    slot.cooldown = weapons[i].cd * slot.stats.cooldown
+    const source = known[i]
+    if (!source) return
+    slot.stats.area = source.area
+    slot.cooldown = source.cd * slot.stats.cooldown
   })
 }

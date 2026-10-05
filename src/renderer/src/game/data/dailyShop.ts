@@ -60,6 +60,7 @@ export function dailyOffers(dayKey = shopDayKey()): DailyOffer[] {
     if (item) picked.push(item)
   }
 
+  if (!picked.length) return []
   const featuredAt = rng.int(picked.length)
   return picked.map((c, i) => ({
     id: c.id,

@@ -35,6 +35,10 @@ export interface CharacterDef {
   tier?: 'rare' | 'epic' | 'legendary' | 'exclusive'
   /** Gold needed to unlock in the shop (0 = available from the start). */
   unlockCost: number
+  /** World index that must be reached before the heroine, her bonus and her weapons are shown. */
+  revealWorld?: number
+  /** Two common starters. When omitted, the base weapon and its common prestige are used. */
+  starters?: readonly [string, string]
 }
 
 export const CHARACTERS: Record<string, CharacterDef> = {
@@ -42,7 +46,7 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     id: 'sakura',
     name: 'Sakura',
     title: 'Espadachina del Cerezo',
-    description: 'Empieza con la Katana Sakura. +10% de poder.',
+    description: 'Empieza con el Abanico Carmesí. +10% de poder.',
     weapon: 'katana',
     mods: { might: 0.1 },
     palette: { hair: '#ff8fc0', hairShade: '#d9578f', eyes: '#ff6fae', eyesDark: '#8f1650', outfit: '#fdeef6', outfitShade: '#e6a9c9', accent: '#ff4f98' },
@@ -120,14 +124,28 @@ export const CHARACTERS: Record<string, CharacterDef> = {
 
 export const CHARACTER_ORDER = ['sakura', 'rin', 'kaede', 'yuki', 'hikari', 'akane'] as const
 
-/** The base weapon and its common prestige. Those are the two starts a heroine can pick. */
-export function starterPair(characterId: string): [string, string] {
+/** True once this save has entered Ceniza Carmesí. */
+export function catalogOpen(save: { worldsReached?: number }): boolean {
+  return (save.worldsReached ?? 1) >= 2
+}
+
+/** A gated heroine stays a silhouette until her world has been reached. */
+export function characterRevealed(save: { worldsReached?: number }, id: string): boolean {
+  const gate = CHARACTERS[id]?.revealWorld
+  return !gate || (save.worldsReached ?? 1) >= gate
+}
+
+/** The base weapon, plus a second common only while that form still exists. */
+export function starterPair(characterId: string): readonly string[] {
+  const declared = CHARACTERS[characterId]?.starters
+  if (declared) return declared.filter((id) => WEAPONS[id])
   const base = CHARACTERS[characterId]?.weapon ?? 'katana'
-  return [base, `${base}_common`]
+  const alt = `${base}_common`
+  return WEAPONS[alt] ? [base, alt] : [base]
 }
 
 /** Only the two common forms of that heroine are allowed. Anything else falls back to the base. */
 export function resolveStarter(characterId: string, weaponId: string | undefined): string {
-  const [base, common] = starterPair(characterId)
-  return weaponId === common && WEAPONS[common] ? common : base
+  const [base, alt] = starterPair(characterId)
+  return weaponId === alt && WEAPONS[alt] ? alt : base
 }

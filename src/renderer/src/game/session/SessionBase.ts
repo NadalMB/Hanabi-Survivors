@@ -134,7 +134,15 @@ export abstract class SessionBase {
       } else if (ev.e === 'boss') this.hud.banner(ev.mini ? '¡MINIJEFE!' : '¡SE ACERCA UN JEFE!', [ENEMIES[ev.enemyType].name], 'boss')
       else if (ev.e === 'endless') this.hud.banner('MODO INFINITO', ['La horda no va a parar.'], 'boss')
       else if (ev.e === 'portal') this.hud.banner('PORTAL', ['Entra para el siguiente mundo, o quédate. La horda crecerá cada vez más rápido.'], 'chest')
-      else if (ev.e === 'world') this.hud.banner(ev.world === 0 ? 'NOCHE DE HANABI' : 'CENIZA CARMESÍ', ['Nivel, armas y pasivas vuelven a cero. Este mundo es más duro.'], 'boss')
+      else if (ev.e === 'world') {
+        this.hud.banner(ev.world === 0 ? 'NOCHE DE HANABI' : 'CENIZA CARMESÍ', ['Nivel, armas y pasivas vuelven a cero. Este mundo es más duro.'], 'boss')
+        const reached = ev.world + 1
+        if (reached > (this.deps.save.worldsReached ?? 1)) {
+          this.deps.save.worldsReached = reached
+          this.world.catalog = Math.max(this.world.catalog, reached)
+          void this.deps.persist(this.deps.save)
+        }
+      }
       else if (ev.e === 'player-down' && world.players.length > 1) {
         const p = world.playerById(ev.playerId)
         if (p && !p.disconnected) this.hud.banner(`${p.name} ha caído`, ['¡Quédate a su lado para revivirle!'], 'boss')
