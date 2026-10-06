@@ -5,6 +5,7 @@ import { describeMods } from '@/game/data/stats'
 import { describeWeaponLevelUp, describeWeaponSheet, WEAPONS, weaponIconFrame, type WeaponDef } from '@/game/data/weapons'
 import { raritySteps, upgradeName } from '@/game/systems/upgrades'
 import { iconImg, type IconFrame, type IconKey } from '@/render/icons'
+import chestArt from '@/assets/pickups/chest.png'
 import { el } from './dom'
 import { rarityOdds } from './RarityOdds'
 
@@ -128,7 +129,7 @@ export class LevelUpOverlay {
     const title = el('div', 'levelup-title')
     title.append(
       el('span', 'levelup-kicker', this.chest ? 'COFRE' : `NIVEL ${level}`),
-      el('span', 'levelup-main', this.chest ? '¡COFRE!' : '¡SUBES DE NIVEL!')
+      el('span', 'levelup-main', this.chest ? 'HAS ENCONTRADO ALGO' : '¡SUBES DE NIVEL!')
     )
     const cardNodes: HTMLButtonElement[] = []
     const cards = el('div', this.chest ? 'chest-deals' : 'cards')
@@ -148,9 +149,14 @@ export class LevelUpOverlay {
     let chestBox: HTMLElement | null = null
     if (this.chest) {
       chestBox = el('div', 'chest-reveal shut')
-      chestBox.append(el('div', 'chest-lid'), el('div', 'chest-body'))
+      const art = el('img', 'chest-art') as HTMLImageElement
+      art.src = chestArt
+      art.alt = ''
+      chestBox.append(art)
       nodes.unshift(chestBox)
-      if (choices.some((choice) => choice.kind === 'prestige')) nodes.push(el('div', 'prestige-burst', 'PRESTIGIO'))
+      if (choices.some((choice) => choice.kind === 'prestige')) {
+        nodes.push(el('div', 'prestige-burst', 'PRESTIGIO'))
+      }
     }
     const hint = this.chest ? '1 o la nueva para aceptarla · 2 o la actual para rechazarla' : `Pulsa 1–${choices.length} o haz clic · 0 para rechazar`
     const foot = el('div', 'levelup-hint', hint)
@@ -182,6 +188,7 @@ export class LevelUpOverlay {
     this.onPick = null
     this.chest = false
     this.offerKey = ''
+    this.root.replaceChildren()
     this.root.className = 'overlay levelup interactive'
   }
 

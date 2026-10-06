@@ -395,6 +395,11 @@
   text-shadow: 0 0 30px rgba(255, 95, 162, 0.9), 0 5px 0 #ff5fa2;
 }
 
+.overlay.chest .levelup-main {
+  font-size: clamp(28px, 5.5vw, 52px);
+  letter-spacing: 2px;
+}
+
 @keyframes title-pop {
   from {
     opacity: 0;
@@ -540,61 +545,59 @@
 
 .overlay.chest .chest-reveal {
   position: relative;
-  width: 92px;
-  height: 78px;
+  width: 120px;
+  height: 120px;
+  display: grid;
+  place-items: center;
   animation: chest-burst 700ms cubic-bezier(0.2, 1.4, 0.3, 1) both;
+  filter: drop-shadow(0 0 18px rgba(255, 209, 102, 0.55));
 }
 
-.chest-body,
-.chest-lid {
-  position: absolute;
-  left: 8px;
-  width: 76px;
-  border-radius: 6px;
-  background: linear-gradient(#ff5a6a, #9a1024);
-  border: 3px solid #ffd166;
+.chest-art {
+  width: 120px;
+  height: 120px;
+  max-width: 120px;
+  max-height: 120px;
+  object-fit: contain;
+  image-rendering: auto;
+  transform-origin: center bottom;
 }
 
-.chest-body { top: 28px; height: 42px; }
-.chest-lid {
-  top: 8px;
-  height: 24px;
-  transform-origin: 8px 22px;
-  animation: lid-open 500ms 180ms ease both;
-}
-
-.chest-body::after {
-  content: '';
-  position: absolute;
-  left: 32px;
-  top: -4px;
-  width: 12px;
-  height: 18px;
-  background: #ffe08a;
-  border-radius: 2px;
+.chest-reveal.open .chest-art {
+  animation: chest-pop 560ms cubic-bezier(0.2, 1.4, 0.3, 1) both;
 }
 
 .prestige-burst {
   position: absolute;
   left: 50%;
-  top: 46%;
+  top: 42%;
   z-index: 6;
   margin: 0;
-  font: 400 min(18vw, 148px)/0.9 var(--font-display);
-  letter-spacing: 0.08em;
+  font: 400 min(16vw, 120px)/0.9 var(--font-display);
+  letter-spacing: 0.1em;
   color: #ffe08a;
   white-space: nowrap;
   pointer-events: none;
-  -webkit-text-stroke: 8px #1c0b26;
-  text-shadow: 0 0 36px #ffd166, 0 10px 0 #8a5a10;
-  animation: prestige-burst 780ms cubic-bezier(0.15, 0.9, 0.3, 1) forwards;
+  -webkit-text-stroke: 7px #1c0b26;
+  text-shadow:
+    0 0 28px #ffd166,
+    0 0 48px rgba(255, 209, 102, 0.85),
+    0 8px 0 #8a5a10;
+  animation: prestige-burst 1100ms cubic-bezier(0.15, 0.9, 0.3, 1) forwards;
 }
 
 @keyframes prestige-burst {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.35); }
-  16% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); }
-  32% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -62%) scale(1.2); }
+  0% { opacity: 0; transform: translate(-50%, -40%) scale(0.2); filter: brightness(2.4); }
+  18% { opacity: 1; transform: translate(-50%, -50%) scale(1.18); filter: brightness(1.35); }
+  38% { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: brightness(1); }
+  72% { opacity: 1; transform: translate(-50%, -54%) scale(1.04); }
+  100% { opacity: 0; transform: translate(-50%, -68%) scale(1.22); filter: brightness(1.2); }
+}
+
+@keyframes chest-pop {
+  0% { transform: scale(0.82) translateY(8px); }
+  55% { transform: scale(1.08) translateY(-4px); }
+  100% { transform: none; }
 }
 
 .rarity-call {
@@ -765,9 +768,7 @@
 }
 .overlay.watching .card { pointer-events: none; }
 
-.chest-reveal.shut .chest-lid { animation: none; }
 .chest-reveal.open { animation: chest-burst 640ms cubic-bezier(0.2, 1.4, 0.3, 1) both; }
-.chest-reveal.open .chest-lid { animation: lid-open 560ms ease both; }
 
 @keyframes card-deal {
   from { opacity: 0; transform: translateY(36px) scale(0.86); }
@@ -798,11 +799,6 @@
   0% { transform: scale(0.2) rotate(-8deg); opacity: 0; }
   40% { transform: scale(1.15) rotate(4deg); }
   100% { transform: none; opacity: 1; }
-}
-
-@keyframes lid-open {
-  from { transform: rotate(0); }
-  to { transform: rotate(-28deg); }
 }
 
 @keyframes legend-title {
@@ -889,7 +885,7 @@
   top: 16px;
   right: 16px;
   z-index: 4;
-  width: 220px;
+  width: 180px;
   padding: 12px 14px;
   border-radius: 14px;
   pointer-events: none;
@@ -903,14 +899,6 @@
   font: 400 13px/1 var(--font-display);
   letter-spacing: 2px;
   color: #ffe08a;
-}
-
-.rarity-odds-kicker {
-  margin-top: 8px;
-  font: 700 11px/1 var(--font-body);
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-  color: #e6dcff;
 }
 
 .rarity-odds-row {
@@ -1510,4 +1498,72 @@
   font: 600 12px/1 var(--font-body);
   color: var(--cyan);
   opacity: 0.75;
+}
+
+/* ------------------------------------------------------------------ practice HUD */
+
+.practice-hud {
+  position: absolute;
+  top: 52px;
+  right: 14px;
+  width: min(260px, 42vw);
+  max-height: calc(100% - 80px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(28, 12, 48, 0.92), rgba(8, 4, 20, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  z-index: 6;
+  overflow: hidden;
+}
+
+.practice-hud-title {
+  font: 400 20px/1 var(--font-display);
+  letter-spacing: 1px;
+  color: #fff;
+}
+
+.practice-hud-hint {
+  margin: 0;
+  font: 600 12px/1.35 var(--font-body);
+  color: #e6dcff;
+  opacity: 0.8;
+}
+
+.practice-hud-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.practice-hud-enemy {
+  all: unset;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font: 700 13px/1.2 var(--font-body);
+  color: #f3e8ff;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+}
+
+.practice-hud-enemy:hover {
+  background: rgba(255, 95, 162, 0.16);
+}
+
+.practice-hud-enemy.on {
+  border-color: var(--pink);
+  background: rgba(255, 95, 162, 0.24);
+}
+
+.practice-hud-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }

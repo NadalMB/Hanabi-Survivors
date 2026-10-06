@@ -76,12 +76,17 @@ export function weaponFamily(id: string): string {
 }
 
 /**
- * Most chest cards stay common. Rare shows up often enough to notice,
- * epic is uncommon, and legendary stays a rare pull. Luck helps a little.
+ * Shared rarity table for level-ups and chests.
+ * Base (luck 1): common 72%, rare 20%, epic 6%, legendary 2%.
+ * Extra luck trims common and lifts the higher tiers a little.
  */
-export function chestRarityWeights(luck: number): [number, number, number, number] {
+export function rarityWeights(luck: number): [number, number, number, number] {
   const bonus = Math.max(0, luck - 1)
-  return [1000, 120 * (1 + bonus * 0.12), 28 * (1 + bonus * 0.15), 6 * (1 + bonus * 0.18)]
+  const rare = 20 * (1 + bonus * 0.12)
+  const epic = 6 * (1 + bonus * 0.15)
+  const legendary = 2 * (1 + bonus * 0.18)
+  const common = Math.max(0, 100 - rare - epic - legendary)
+  return [common, rare, epic, legendary]
 }
 
 interface FamilyForms {
@@ -172,7 +177,7 @@ const FAMILIES: FamilyForms[] = [
     rows: [
       { rarity: 'common', name: 'Chispazo', description: 'Un rayo corto y flojo sobre un enemigo cercano.', visual: 0, base: s({ damage: 14, cooldown: 2.1, amount: 1, area: 0.85, duration: 0, interval: 0.12 }) },
       { rarity: 'rare', name: 'Tormenta de Raijin', description: 'Impacto amplio: cerca del centro destroza, lejos del impacto hace mucho menos daño.', visual: 0, base: s({ damage: 34, cooldown: 1.75, amount: 2, area: 2.15, duration: 0, interval: 0.1 }) },
-      { rarity: 'epic', name: 'Ojo de la Tormenta', description: 'Al golpear, el rayo persigue al siguiente enemigo en cadena y pierde fuerza en cada salto.', form: 'storm', visual: 0, base: s({ damage: 48, cooldown: 1.4, amount: 5, area: 0.85, duration: 0, interval: 0.06 }) },
+      { rarity: 'epic', name: 'Tormenta Encadenada', description: 'Al golpear, el rayo persigue al siguiente enemigo en cadena y pierde fuerza en cada salto.', form: 'storm', visual: 0, base: s({ damage: 48, cooldown: 1.4, amount: 5, area: 0.85, duration: 0, interval: 0.06 }) },
       { rarity: 'legendary', name: 'Juicio Dorado', description: 'Un círculo de rayos dorados y cadenas que no paran.', form: 'storm', visual: GLOW, base: s({ damage: 72, cooldown: 1.0, amount: 7, area: 2, duration: 0, interval: 0.05 }) }
     ]
   },
@@ -230,7 +235,7 @@ export function buildPrestigeWeapons(): Record<string, WeaponDef> {
   for (const family of FAMILIES) {
     const list: WeaponDef[] = []
     for (const row of family.rows) {
-      if (row.rarity === 'common' || row.rarity === 'legendary') continue
+      if (row.rarity === 'common') continue
       const id = `${family.family}_${row.rarity}`
       const def: WeaponDef = {
         id,

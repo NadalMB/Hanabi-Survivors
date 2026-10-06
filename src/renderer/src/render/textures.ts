@@ -1,4 +1,4 @@
-import { CanvasSource, ImageSource, Texture } from 'pixi.js'
+import { CanvasSource, Texture } from 'pixi.js'
 import { CHARACTERS, type Accessory, type CharacterDef, type CharacterPalette } from '@/game/data/characters'
 import { COSMETICS, type CosmeticDef, type EffectKind, type OrnamentKind, type PetKind } from '@/game/data/cosmetics'
 import { ENEMIES } from '@/game/data/enemies'
@@ -27,9 +27,8 @@ import nurikabeArt from '../assets/enemies/nurikabe.png'
 import chochinArt from '../assets/enemies/chochin.png'
 import kappaArt from '../assets/enemies/kappa.png'
 import nueArt from '../assets/enemies/nue.png'
-import omamoriProj from '../assets/icons/omamori.png'
-import sealProj from '../assets/icons/seal.png'
 import shikigamiArt from '../assets/pets/shikigami.png'
+import chestArt from '../assets/pickups/chest.png'
 
 /** Textures are painted at 2x and exposed at logical size, so they stay crisp when zoomed. */
 const RES = 2
@@ -58,7 +57,7 @@ export interface GameTextures {
   heal: Texture
   gold: Texture
   chest: Texture
-  /** Data URL of the chest, for the off-screen marker. */
+  /** Small data URL for off-screen chest markers (keep tiny — many DOM imgs). */
   chestIcon: string
   magnet: Texture
   spark: Texture
@@ -2433,14 +2432,6 @@ function drawEnemyBody(ctx: Ctx, key: string, s: number): void {
 
 // ---------------------------------------------------------------- projectiles & fx
 
-/** The flying ofuda keeps the PNG itself. Copying it onto a canvas was uploading a blank texture. */
-function charmTexture(img: HTMLImageElement, logicalH: number): Texture {
-  const source = new ImageSource({ resource: img })
-  source.autoGarbageCollect = false
-  source.resolution = img.height / logicalH
-  return new Texture({ source })
-}
-
 function projectileCanvases(): HTMLCanvasElement[] {
   const ofuda = (gold: boolean): HTMLCanvasElement => {
     return withGlow(
@@ -3710,7 +3701,8 @@ const BOSS_URLS: Record<string, string> = {
   nurikabe: nurikabeArt,
   chochin: chochinArt,
   kappa: kappaArt,
-  nue: nueArt
+  nue: nueArt,
+  chest: chestArt
 }
 
 function loadImages(urls: Record<string, string>): Promise<Record<string, HTMLImageElement>> {
@@ -3744,15 +3736,6 @@ const PET_URLS: Record<string, string> = {
 /** Painted familiars that replace the procedural pet sprites. */
 export function loadPetImages(): Promise<Record<string, HTMLImageElement>> {
   return loadImages(PET_URLS)
-}
-
-let projectileCharms: Record<string, HTMLImageElement> = {}
-
-/** The flying ofuda uses the same charm art as the weapon icon. */
-export function loadProjectileCharms(): Promise<void> {
-  return loadImages({ talisman: omamoriProj, seal: sealProj }).then((imgs) => {
-    projectileCharms = imgs
-  })
 }
 
 /** On-screen height of a painted heroine, in world pixels. A little taller than the previous cut. */
@@ -3884,21 +3867,40 @@ export function createTextures(
     mask: toTexture(ornamentCanvas('mask', '#fff4e0'), 4)
   } as const
 
-  const chestCanvas = withGlow(
-    outlined(
-      paint(32, 26, (ctx) => {
-        roundRect(ctx, 3, 10, 26, 13, 2, lin(ctx, 0, 10, 0, 23, [[0, '#d8243c'], [1, '#7a0a1c']]))
-        roundRect(ctx, 3, 4, 26, 8, 4, lin(ctx, 0, 4, 0, 12, [[0, '#ff5a6a'], [1, '#b3122a']]))
-        ctx.fillStyle = lin(ctx, 0, 0, 0, 26, [[0, '#fff3b0'], [1, '#c98a10']])
-        ctx.fillRect(3, 11, 26, 2)
-        ctx.fillRect(14, 4, 4, 19)
-        roundRect(ctx, 13, 12, 6, 6, 1, '#fff6c8')
-        ellipse(ctx, 9, 6.5, 4, 1.2, 'rgba(255,255,255,0.4)')
-      })
-    ),
-    'rgba(255,209,102,1)',
-    6
-  )
+  const paintedChest = bosses.chest
+  const chestSprite = paintedChest
+    ? (() => {
+        const logicalH = 36
+        const maxEdge = 256
+        const fit = Math.min(1, maxEdge / Math.max(paintedChest.width, paintedChest.height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, Math.round(paintedChest.width * fit))
+        canvas.height = Math.max(1, Math.round(paintedChest.height * fit))
+        const ctx = canvas.getContext('2d')!
+        ctx.imageSmoothingEnabled = fit < 1
+        ctx.imageSmoothingQuality = 'high'
+        ctx.drawImage(paintedChest, 0, 0, canvas.width, canvas.height)
+        const glowed = withGlow(canvas, 'rgba(255,209,102,0.85)', 6, 1)
+        return { canvas: glowed, resolution: canvas.height / logicalH }
+      })()
+    : {
+        canvas: withGlow(
+          outlined(
+            paint(32, 26, (ctx) => {
+              roundRect(ctx, 3, 10, 26, 13, 2, lin(ctx, 0, 10, 0, 23, [[0, '#d8243c'], [1, '#7a0a1c']]))
+              roundRect(ctx, 3, 4, 26, 8, 4, lin(ctx, 0, 4, 0, 12, [[0, '#ff5a6a'], [1, '#b3122a']]))
+              ctx.fillStyle = lin(ctx, 0, 0, 0, 26, [[0, '#fff3b0'], [1, '#c98a10']])
+              ctx.fillRect(3, 11, 26, 2)
+              ctx.fillRect(14, 4, 4, 19)
+              roundRect(ctx, 13, 12, 6, 6, 1, '#fff6c8')
+              ellipse(ctx, 9, 6.5, 4, 1.2, 'rgba(255,255,255,0.4)')
+            })
+          ),
+          'rgba(255,209,102,1)',
+          6
+        ),
+        resolution: RES
+      }
 
   const weaponSkins: Record<string, Texture> = {}
   const previews: Record<string, string> = {}
@@ -3935,10 +3937,7 @@ export function createTextures(
     enemies,
     enemiesWhite,
     enemyPortraits,
-    projectiles: projectileCanvases().map((canvas, index) => {
-      const charm = index === 0 ? projectileCharms.talisman : index === 1 ? projectileCharms.seal : undefined
-      return charm ? charmTexture(charm, 78) : toTexture(canvas)
-    }),
+    projectiles: projectileCanvases().map((canvas) => toTexture(canvas)),
     gems: [0, 1, 2, 3, 4].map((tier) => toTexture(gemDiamondCanvas(tier))),
     heal: toTexture(
       withGlow(
@@ -3975,8 +3974,22 @@ export function createTextures(
         3
       )
     ),
-    chest: toTexture(chestCanvas),
-    chestIcon: chestCanvas.toDataURL(),
+    chest: toTexture(chestSprite.canvas, chestSprite.resolution),
+    chestIcon: (() => {
+      const size = 48
+      const canvas = document.createElement('canvas')
+      canvas.width = size
+      canvas.height = size
+      const ctx = canvas.getContext('2d')!
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
+      const src = chestSprite.canvas
+      const scale = Math.min(size / src.width, size / src.height)
+      const w = Math.max(1, src.width * scale)
+      const h = Math.max(1, src.height * scale)
+      ctx.drawImage(src, (size - w) / 2, (size - h) / 2, w, h)
+      return canvas.toDataURL('image/png')
+    })(),
     magnet: toTexture(
       withGlow(
         outlined(

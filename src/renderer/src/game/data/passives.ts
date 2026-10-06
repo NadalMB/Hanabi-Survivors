@@ -22,7 +22,7 @@ const passive = (id: string, name: string, icon: IconKey, description: string, p
 export const PASSIVES: Record<string, PassiveDef> = {
   bushido: passive('bushido', 'Espíritu Bushidō', 'crossed_swords', 'Aumenta el daño de todas las armas.', { might: 0.1 }),
   grimoire: passive('grimoire', 'Pergamino del Tiempo', 'hourglass', 'Reduce el enfriamiento de las armas.', { cooldown: -0.08 }),
-  wind_sandals: passive('wind_sandals', 'Sandalias del Viento', 'leaf', 'Te mueves más rápido.', { moveSpeed: 0.1 }),
+  wind_sandals: passive('wind_sandals', 'Pluma del Viento', 'leaf', 'Te mueves más rápido.', { moveSpeed: 0.1 }),
   spirit_lantern: passive('spirit_lantern', 'Farol Espiritual', 'lantern', 'Los efectos de las armas duran más.', { duration: 0.1 }),
   omamori: passive('omamori', 'Omamori', 'omamori', 'Más suerte: críticos, botín y mejores cofres.', { luck: 0.1 }),
   jade_heart: passive('jade_heart', 'Corazón de Jade', 'heart', 'Aumenta la vida máxima.', { maxHp: 20 }),

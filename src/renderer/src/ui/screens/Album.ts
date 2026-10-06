@@ -40,6 +40,13 @@ export function album(app: App): HTMLElement {
   let tab: Tab = 'characters'
   let selected = ''
 
+  const practiceBtn = el('button', 'btn primary album-practice-btn', 'Modo práctica')
+  practiceBtn.addEventListener('click', () => {
+    app.sfx.ui()
+    app.practiceDesk()
+  })
+  frame.body.prepend(practiceBtn)
+
   const tabs = el('div', 'album-tabs')
   const layout = el('div', 'album-layout')
   const grid = el('div', 'album-grid')

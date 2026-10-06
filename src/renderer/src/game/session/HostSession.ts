@@ -13,7 +13,12 @@ import { EnemyMode } from '../sim/EnemyPool'
 import type { Player } from '../sim/Player'
 import { World } from '../sim/World'
 import { openChest } from '../systems/upgrades'
+import { applyPracticeLoadout, type PracticeLoadout } from '../practice'
 import { SessionBase, type SessionDeps } from './SessionBase'
+import { PracticeHud } from '@/ui/PracticeHud'
+import { ENEMIES } from '../data/enemies'
+import { enemyDamageScale, enemyHpScale } from '../data/waves'
+import { enemyMoveMode } from '../systems/director'
 
 export interface HostOptions {
   characterId: string
@@ -24,6 +29,8 @@ export interface HostOptions {
   autoplay?: boolean
   fastForwardSeconds?: number
   god?: boolean
+  /** Album sandbox run. */
+  practice?: PracticeLoadout
 }
 
 const SNAPSHOT_EVERY = Math.round(SIM_HZ / NET_SNAPSHOT_HZ)
@@ -40,6 +47,7 @@ export class HostSession extends SessionBase {
   /** Remote players who have the pause menu open. Their ids freeze the simulation. */
   private readonly remotePaused = new Map<PlayerId, string>()
   private announcedPause = false
+  private practiceHud: PracticeHud | null = null
 
   constructor(
     deps: SessionDeps,
@@ -68,6 +76,7 @@ export class HostSession extends SessionBase {
     } else {
       window.addEventListener('blur', this.onBlur)
     }
+    if (opts.practice) this.mountPracticeHud()
     if (opts.fastForwardSeconds) this.fastForward(opts.fastForwardSeconds)
   }
 
@@ -85,7 +94,48 @@ export class HostSession extends SessionBase {
       : [{ id: HOST_PLAYER_ID, name: deps.save.settings.playerName, characterId: opts.characterId, weaponId: opts.weaponId, meta: metaMods(deps.save.metaUpgrades), loadout: loadoutFromSave(deps.save) }]
     const world = new World({ seed, players, catalog: deps.save.worldsReached })
     world.godMode = deps.debug && !!opts.god
+    if (opts.practice) {
+      world.practice = true
+      world.godMode = true
+      applyPracticeLoadout(world.playerById(HOST_PLAYER_ID)!, opts.practice)
+    }
     return world
+  }
+
+  private mountPracticeHud(): void {
+    this.practiceHud?.destroy()
+    this.practiceHud = new PracticeHud(
+      document.getElementById('ui')!,
+      (type, count) => this.spawnPractice(type, count),
+      () => this.clearPracticeEnemies()
+    )
+  }
+
+  /** Fixed mid-run scaling so practice summons feel like a real fight. */
+  private spawnPractice(type: number, count: number): void {
+    if (!ENEMIES[type] || !this.local.alive) return
+    const world = this.world
+    const p = this.local
+    const minutes = 10
+    const hp = enemyHpScale(minutes)
+    const dmg = enemyDamageScale(minutes)
+    const mode = enemyMoveMode(type)
+    let announced = false
+    for (let k = 0; k < count; k++) {
+      const a = Math.random() * Math.PI * 2
+      const d = SPAWN_RADIUS * (0.55 + Math.random() * 0.4)
+      const i = world.enemies.spawn(type, p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, hp, dmg, false, mode)
+      if (i >= 0 && ENEMIES[type].boss && !announced) {
+        world.events.push({ e: 'boss', enemyType: type })
+        announced = true
+      }
+    }
+  }
+
+  private clearPracticeEnemies(): void {
+    const e = this.world.enemies
+    for (let i = 0; i < e.count; i++) e.alive[i] = 0
+    e.compact()
   }
 
   protected get pausesWhenMenuOpen(): boolean {
@@ -94,6 +144,8 @@ export class HostSession extends SessionBase {
 
   destroy(): void {
     window.removeEventListener('blur', this.onBlur)
+    this.practiceHud?.destroy()
+    this.practiceHud = null
     super.destroy()
   }
 
@@ -209,6 +261,14 @@ export class HostSession extends SessionBase {
   // ------------------------------------------------------------------ flow
 
   protected menuActions(): MenuAction[] {
+    if (this.opts.practice) {
+      return [
+        { label: 'Continuar', hint: 'Esc', primary: true, run: () => this.closeMenu() },
+        this.settingsAction(),
+        { label: 'Reiniciar arena', run: () => this.restart() },
+        { label: 'Volver al álbum', run: () => this.exitToMenu() }
+      ]
+    }
     if (this.net) {
       return [
         { label: 'Continuar', hint: 'Esc', primary: true, run: () => this.closeMenu() },
@@ -226,6 +286,7 @@ export class HostSession extends SessionBase {
   }
 
   protected finaleActions(): MenuAction[] | null {
+    if (this.opts.practice) return null
     if (this.net && this.localId !== HOST_PLAYER_ID) return null
     return [
       { label: 'Modo infinito', primary: true, run: () => this.world.continueEndless() },
@@ -255,10 +316,15 @@ export class HostSession extends SessionBase {
           { label: 'Reintentar', hint: 'R', primary: true, run: () => this.restart() },
           { label: 'Volver al menú', run: () => this.exitToMenu() }
         ]
-      : [
-          { label: 'Reintentar', hint: 'R', primary: true, run: () => this.restart() },
-          { label: 'Menú principal', run: () => this.exitToMenu() }
-        ]
+      : this.opts.practice
+        ? [
+            { label: 'Reiniciar arena', hint: 'R', primary: true, run: () => this.restart() },
+            { label: 'Volver al álbum', run: () => this.exitToMenu() }
+          ]
+        : [
+            { label: 'Reintentar', hint: 'R', primary: true, run: () => this.restart() },
+            { label: 'Menú principal', run: () => this.exitToMenu() }
+          ]
     this.awardRun(info, actions)
   }
 

@@ -9,7 +9,7 @@ import { updateEnemies } from '../systems/enemies'
 import { spawnPickup, updatePickups } from '../systems/pickups'
 import { downPlayer, updatePlayers } from '../systems/players'
 import { updateProjectiles } from '../systems/projectiles'
-import { applyChoice, chestChoices, generateChoices, rollSharedChest } from '../systems/upgrades'
+import { applyChoice, CHEST_CONSOLATION_GOLD, chestChoices, generateChoices, isChestUiOffer, rollSharedChest } from '../systems/upgrades'
 import { updateWeapons } from '../systems/weapons'
 import { WORLD_COUNT } from '../data/worlds'
 import { CELL_SIZE, RUN_DURATION_SECONDS, xpForLevel } from './config'
@@ -73,6 +73,8 @@ export class World {
   bossesDefeated = 0
   maxEnemyRadius = 24
   godMode = false
+  /** Album sandbox: no director, no rewards, no 20-minute finale. */
+  practice = false
   /** Set when the team chooses to keep playing after the 20 minute night. */
   endless = false
   /** One chest on the ground opens a different offer for every living player. */
@@ -139,7 +141,7 @@ export class World {
 
     this.resolveLevelUps()
     if (this.alivePlayerCount() === 0) this.state = 'gameover'
-    else if (!this.endless && this.time >= RUN_DURATION_SECONDS && this.state === 'running') {
+    else if (!this.practice && !this.endless && this.time >= RUN_DURATION_SECONDS && this.state === 'running') {
       this.time = RUN_DURATION_SECONDS
       this.state = 'finale'
     }
@@ -289,15 +291,29 @@ export class World {
       const seat = this.sharedChest.find((s) => s.playerId === p.id && s.pick === null)
       if (seat) {
         p.awaitingChest = false
-        p.choices = seat.choices
-        p.offer = 'chest'
+        this.deliverChest(p, seat.choices)
         return
       }
     }
     if (p.pendingChests <= 0) return
     p.pendingChests--
-    p.choices = chestChoices(this, p)
-    p.offer = 'chest'
+    this.deliverChest(p, chestChoices(this, p))
+  }
+
+  /**
+   * Prestige/evolution opens the chest UI. If the roll is only levels or filler,
+   * skip the overlay and pay a flat coin consolation.
+   */
+  private deliverChest(p: Player, choices: UpgradeChoice[]): void {
+    if (isChestUiOffer(choices[0])) {
+      p.choices = choices
+      p.offer = 'chest'
+      return
+    }
+    this.gold += CHEST_CONSOLATION_GOLD
+    this.noteChestPick(p.id, -1)
+    this.finishSharedChest()
+    this.offerIfIdle(p)
   }
 
   /** Marks a co-op chest seat resolved. -1 means they took nothing. */

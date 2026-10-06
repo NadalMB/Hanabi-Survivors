@@ -36,6 +36,7 @@ export class SpawnDirector {
   }
 
   update(world: World, dt: number): void {
+    if (world.practice) return
     growPressure(world)
     const minutes = world.time / 60
     const script = waveEvents(world.realm)
@@ -90,7 +91,8 @@ function pickType(world: World, minutes: number): number {
   return idx >= 0 ? entries[idx].type : -1
 }
 
-function moveMode(type: number): number {
+/** Movement pattern for a given enemy type (also used by album practice summons). */
+export function enemyMoveMode(type: number): number {
   if (ENEMIES[type].boss) return EnemyMode.Boss
   if (type === EnemyType.Tengu || type === EnemyType.Kappa || type === EnemyType.Amanojaku || type === EnemyType.Isoonna) return EnemyMode.Leap
   if (type === EnemyType.Chochin || type === EnemyType.Hozuki) return EnemyMode.Orbit
@@ -147,7 +149,7 @@ function spawnNearPlayer(world: World, type: number, minutes: number, elite: boo
   // Bias spawns toward where the player is heading so running away isn't free.
   const angle = rng.chance(0.5) ? Math.atan2(p.aimY, p.aimX) + rng.range(-1.2, 1.2) : rng.next() * Math.PI * 2
   const dist = SPAWN_RADIUS + rng.next() * 120
-  spawnAt(world, type, p.x + Math.cos(angle) * dist, p.y + Math.sin(angle) * dist, minutes, elite, moveMode(type))
+  spawnAt(world, type, p.x + Math.cos(angle) * dist, p.y + Math.sin(angle) * dist, minutes, elite, enemyMoveMode(type))
 }
 
 function runEvent(world: World, ev: WaveEvent, minutes: number): void {
@@ -165,7 +167,7 @@ function runEvent(world: World, ev: WaveEvent, minutes: number): void {
       const radius = SPAWN_RADIUS * 0.9
       for (let k = 0; k < ev.count; k++) {
         const a = (k / ev.count) * Math.PI * 2
-        spawnAt(world, ev.type, p.x + Math.cos(a) * radius, p.y + Math.sin(a) * radius, minutes, false, moveMode(ev.type))
+        spawnAt(world, ev.type, p.x + Math.cos(a) * radius, p.y + Math.sin(a) * radius, minutes, false, enemyMoveMode(ev.type))
       }
       break
     }

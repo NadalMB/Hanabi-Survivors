@@ -16,7 +16,7 @@ import { REVIVE_SECONDS } from '@/game/systems/players'
 import { AURA_BASE_RADIUS } from '@/game/systems/weapons'
 import { Camera } from './Camera'
 import { DamageNumbers } from './DamageNumbers'
-import { EdgeMarkers } from './EdgeMarkers'
+import { EdgeMarkers, MAX_CHEST_EDGE_MARKERS } from './EdgeMarkers'
 import { Particles } from './Particles'
 import { SpritePool } from './SpritePool'
 import { PLAYER_ANCHOR_Y, type GameTextures } from './textures'
@@ -52,10 +52,12 @@ export class GameRenderer {
   private readonly playerLayer = new Container()
   private readonly projectileLayer = new Container()
   private readonly fxLayer = new Container()
+  private readonly dangerLayer = new Graphics()
   private readonly textLayer = new Container()
   private readonly hpBars = new Graphics()
   private readonly vignette: Sprite
   private readonly flash = new Graphics()
+  private readonly dangers: Array<{ x: number; y: number; r: number; tint: number; until: number; x2?: number; y2?: number }> = []
 
   private readonly props: SpritePool
   private readonly propGlows: SpritePool
@@ -105,6 +107,7 @@ export class GameRenderer {
       this.propLayer,
       this.shadowLayer,
       this.auraLayer,
+      this.dangerLayer,
       this.pickupLayer,
       this.enemyLayer,
       this.backOrnamentLayer,
@@ -155,6 +158,8 @@ export class GameRenderer {
     this.camera.reset()
     this.flashAlpha = 0
     this.vignetteAlpha = 0
+    this.dangers.length = 0
+    this.dangerLayer.clear()
   }
 
   screenFlash(alpha: number): void {
@@ -197,6 +202,7 @@ export class GameRenderer {
     this.drawPlayers(world, alpha, localId)
     this.drawCosmetics(world, alpha, dt)
     this.drawProjectiles(world, alpha)
+    this.drawDangers()
     this.shadows.end()
     this.drawEdgeMarkers(world, alpha, localId, sw, sh, zoom, camX, camY)
 
@@ -214,6 +220,47 @@ export class GameRenderer {
     if (this.flashAlpha > 0) this.flash.rect(0, 0, sw, sh).fill({ color: 0xffffff, alpha: this.flashAlpha })
 
     this.app.renderer.render(this.app.stage)
+  }
+
+  private drawDangers(): void {
+    const g = this.dangerLayer
+    g.clear()
+    if (this.dangers.length === 0) return
+    const now = this.time
+    let write = 0
+    for (let i = 0; i < this.dangers.length; i++) {
+      const d = this.dangers[i]
+      if (d.until <= now) continue
+      this.dangers[write++] = d
+      const left = d.until - now
+      const pulse = 0.45 + 0.4 * Math.sin(now * 14 + d.x * 0.01)
+      const fade = Math.min(1, left * 2.2)
+      const fillA = pulse * 0.22 * fade
+      const lineA = Math.min(0.95, pulse * 0.95 * fade)
+      g.circle(d.x, d.y, d.r).fill({ color: d.tint, alpha: fillA })
+      g.circle(d.x, d.y, d.r).stroke({ width: 3.2, color: d.tint, alpha: lineA })
+      g.circle(d.x, d.y, Math.max(4, d.r * 0.18)).fill({ color: 0xffffff, alpha: lineA * 0.55 })
+      if (d.x2 != null && d.y2 != null) {
+        const dx = d.x2 - d.x
+        const dy = d.y2 - d.y
+        const len = Math.hypot(dx, dy) || 1
+        const nx = -dy / len
+        const ny = dx / len
+        const half = Math.max(10, d.r * 0.55)
+        g.poly([
+          d.x + nx * half,
+          d.y + ny * half,
+          d.x2 + nx * half,
+          d.y2 + ny * half,
+          d.x2 - nx * half,
+          d.y2 - ny * half,
+          d.x - nx * half,
+          d.y - ny * half
+        ]).fill({ color: d.tint, alpha: fillA * 0.85 })
+        g.moveTo(d.x, d.y).lineTo(d.x2, d.y2).stroke({ width: 2.4, color: 0xffffff, alpha: lineA * 0.7 })
+      }
+    }
+    this.dangers.length = write
   }
 
   private drawEdgeMarkers(world: World, alpha: number, localId: PlayerId, sw: number, sh: number, zoom: number, camX: number, camY: number): void {
@@ -238,14 +285,23 @@ export class GameRenderer {
       }
     }
     const pk = world.pickups
+    const pad = 8
+    const chestMarks: { sx: number; sy: number; meters: number }[] = []
     for (let i = 0; i < pk.count; i++) {
       if (!pk.alive[i] || pk.type[i] !== PickupType.Chest) continue
       if (pk.owner[i] !== 0 && pk.owner[i] !== localId) continue
       const x = pk.prevX[i] + (pk.x[i] - pk.prevX[i]) * alpha
       const y = pk.prevY[i] + (pk.y[i] - pk.prevY[i]) * alpha
       const { sx, sy } = screen(x, y)
-      const meters = Math.hypot(x - camX, y - camY) / UNITS_PER_METER
-      this.markers.mark(sx, sy, cssW, cssH, '', meters, '#ffd166', this.tex.chestIcon, 'chest')
+      if (sx >= pad && sx <= cssW - pad && sy >= pad && sy <= cssH - pad) continue
+      chestMarks.push({ sx, sy, meters: Math.hypot(x - camX, y - camY) / UNITS_PER_METER })
+    }
+    if (chestMarks.length > MAX_CHEST_EDGE_MARKERS) {
+      chestMarks.sort((a, b) => a.meters - b.meters)
+      chestMarks.length = MAX_CHEST_EDGE_MARKERS
+    }
+    for (const c of chestMarks) {
+      this.markers.mark(c.sx, c.sy, cssW, cssH, '', c.meters, '#ffd166', this.tex.chestIcon, 'chest')
     }
     for (let i = 0; i < pk.count; i++) {
       if (!pk.alive[i] || pk.type[i] !== PickupType.Portal) continue
@@ -638,7 +694,7 @@ export class GameRenderer {
       s.position.set(x, y)
       const hitScale = pr.radius[i] / (VISUAL_BASE_RADIUS[v] || 1)
       const ofuda = v === ProjVisual.Talisman || v === ProjVisual.Seal
-      const scale = hitScale * (ofuda ? 2.4 : 2) * (glow ? 1.22 : 1)
+      const scale = hitScale * 2 * (glow ? 1.22 : 1)
       s.scale.set(scale)
       const fallback = v === ProjVisual.Fuuma ? 0xc9a8ff : 0xffffff
       const tint = this.projectileTint(world, pr.owner[i], v, fallback)
@@ -806,10 +862,21 @@ export class GameRenderer {
           this.camera.addTrauma(0.6)
           this.sfx.boss()
           break
-        case 'telegraph':
-          fx.emit(t.ring, ev.x, ev.y, { life: 0.45, scale: 0.15, scaleEnd: (ev.radius * 2) / 64, tint: ev.tint, alpha: 0.85 })
-          fx.emit(t.glow, ev.x, ev.y, { life: 0.35, scale: ev.radius / 40, scaleEnd: ev.radius / 28, tint: ev.tint, alpha: 0.45 })
+        case 'telegraph': {
+          const life = ev.life ?? 0.85
+          this.dangers.push({
+            x: ev.x,
+            y: ev.y,
+            r: ev.radius,
+            tint: ev.tint,
+            until: this.time + life,
+            x2: ev.x2,
+            y2: ev.y2
+          })
+          fx.emit(t.ring, ev.x, ev.y, { life: Math.min(0.55, life * 0.45), scale: 0.15, scaleEnd: (ev.radius * 2) / 64, tint: ev.tint, alpha: 0.9 })
+          fx.emit(t.glow, ev.x, ev.y, { life: Math.min(0.4, life * 0.35), scale: ev.radius / 40, scaleEnd: ev.radius / 28, tint: ev.tint, alpha: 0.5 })
           break
+        }
         case 'endless':
           break
         case 'chest':

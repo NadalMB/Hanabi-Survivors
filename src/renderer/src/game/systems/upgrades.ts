@@ -1,6 +1,6 @@
 import type { LootRarity, UpgradeChoice } from '@shared/protocol'
 import { PASSIVES } from '../data/passives'
-import { chestRarityWeights, PRESTIGE_LABEL, prestigeOptions, weaponFamily, type ChestRarity } from '../data/prestige'
+import { PRESTIGE_LABEL, prestigeOptions, rarityWeights, weaponFamily, type ChestRarity } from '../data/prestige'
 import { designedMaxLevel, maxWeaponLevel, WEAPONS } from '../data/weapons'
 import { MAX_PASSIVE_SLOTS, MAX_WEAPON_SLOTS } from '../sim/config'
 import type { Player, WeaponSlot } from '../sim/Player'
@@ -26,38 +26,17 @@ function shares(weights: readonly number[]): number[] {
   return weights.map((weight) => weight / total)
 }
 
-/** Chance that a level-up upgrade of something you already own rolls each rarity. */
-export function levelRarityChances(luck: number): number[] {
-  return shares(upgradeRarityWeights(luck))
-}
-
-/** Chance of the chest card's rarity. One card keeps the better of two rolls. */
-export function chestRarityChances(luck: number): number[] {
-  const once = shares(chestRarityWeights(luck))
-  const chances: number[] = []
-  let below = 0
-  let cdf = 0
-  for (const chance of once) {
-    cdf += chance
-    const atMost = cdf * cdf
-    chances.push(atMost - below)
-    below = atMost
-  }
-  return chances
+/** Chance of each rarity for level-ups and chests at the player's current luck. */
+export function rarityChances(luck: number): number[] {
+  return shares(rarityWeights(luck))
 }
 
 export function rarityChanceLabel(index: number): string {
   return PRESTIGE_LABEL[RARITY_NAMES[index] ?? 'common']
 }
 
-/** Legendary level-ups stay rare. Luck nudges the better cards a little. */
-function upgradeRarityWeights(luck: number): [number, number, number, number] {
-  const bonus = Math.max(0, luck - 1)
-  return [1000, 180 * (1 + bonus * 0.12), 48 * (1 + bonus * 0.14), 28 * (1 + bonus * 0.16)]
-}
-
-function rollUpgradeRarity(world: World, luck: number): LootRarity {
-  const weights = upgradeRarityWeights(luck)
+function rollRarity(world: World, luck: number): LootRarity {
+  const weights = rarityWeights(luck)
   const index = world.rng.weightedIndex(UPGRADE_RARITIES, (rarity) => weights[UPGRADE_RARITIES.indexOf(rarity)])
   return UPGRADE_RARITIES[Math.max(0, index)]
 }
@@ -119,7 +98,7 @@ export function generateChoices(world: World, p: Player): UpgradeChoice[] {
       const current = choice.level - 1
       const cap = choice.kind === 'weapon' ? maxWeaponLevel(WEAPONS[choice.id]) : PASSIVES[choice.id].maxLevel
       const room = cap - current
-      const rolled = room <= 1 ? 'common' : rollUpgradeRarity(world, p.stats.luck)
+      const rolled = room <= 1 ? 'common' : rollRarity(world, p.stats.luck)
       const steps = Math.min(raritySteps(rolled), room)
       picks.push(tagged({ ...choice, level: current + steps }, rarityForSteps(steps)))
     } else picks.push(tagged(choice, 'common'))
@@ -200,17 +179,8 @@ function readyEvolution(p: Player): WeaponSlot | undefined {
 
 const CHEST_RARITIES: ChestRarity[] = ['common', 'rare', 'epic', 'legendary']
 
-function rollChestRarityOnce(world: World, luck: number): ChestRarity {
-  const weights = chestRarityWeights(luck)
-  const index = world.rng.weightedIndex(CHEST_RARITIES, (rarity) => weights[CHEST_RARITIES.indexOf(rarity)])
-  return CHEST_RARITIES[Math.max(0, index)]
-}
-
-/** One card, with the rarity of the better of two old rolls. */
 function rollChestRarity(world: World, luck: number): ChestRarity {
-  const a = rollChestRarityOnce(world, luck)
-  const b = rollChestRarityOnce(world, luck)
-  return CHEST_RARITIES[Math.max(CHEST_RARITIES.indexOf(a), CHEST_RARITIES.indexOf(b))]
+  return rollRarity(world, luck) as ChestRarity
 }
 
 function offerRarity(id: string): ChestRarity {
@@ -241,37 +211,6 @@ function familyOffers(family: string): { id: string; rarity: ChestRarity }[] {
   return offers
 }
 
-/** A chest with no form left still hands you a weapon: levels, or a new one if there is room. */
-function chestWeapon(world: World, p: Player, blocked: Set<string>): UpgradeChoice {
-  const rarity = rollChestRarity(world, p.stats.luck)
-  const roomy = p.weapons.filter((slot) => slot.level < maxWeaponLevel(WEAPONS[slot.id]))
-  if (roomy.length > 0) {
-    const slot = roomy[world.rng.int(roomy.length)]
-    const steps = Math.min(raritySteps(rarity), maxWeaponLevel(WEAPONS[slot.id]) - slot.level)
-    return { kind: 'weapon', id: slot.id, level: slot.level + steps, rarity: rarityForSteps(steps) }
-  }
-  if (p.weapons.length < MAX_WEAPON_SLOTS) {
-    const fresh = Object.values(WEAPONS).filter((def) => isCommonWeapon(def.id) && !p.weapon(def.id) && !blocked.has(def.id))
-    if (fresh.length > 0) {
-      const def = fresh[world.rng.int(fresh.length)]
-      blocked.add(def.id)
-      return { kind: 'weapon', id: def.id, level: 1, rarity: 'common' }
-    }
-  }
-  const owned = new Set(p.weapons.map((slot) => slot.id))
-  const spare = Object.values(WEAPONS).filter((def) => !def.evolution && !owned.has(def.id) && !blocked.has(def.id))
-  const upgrades = p.weapons.flatMap((slot) =>
-    spare.filter((def) => offerRank(def.id) > offerRank(slot.id)).map((def) => ({ slot, def }))
-  )
-  if (upgrades.length > 0) {
-    const pick = upgrades[world.rng.int(upgrades.length)]
-    blocked.add(pick.def.id)
-    return { kind: 'prestige', id: pick.slot.id, into: pick.def.id, level: pick.slot.level, rarity: offerRarity(pick.def.id) }
-  }
-  const slot = p.weapons[world.rng.int(p.weapons.length)]
-  return { kind: 'weapon', id: slot?.id ?? 'katana', level: (slot?.level ?? 1) + 1, rarity: 'common' }
-}
-
 function blockChoice(blocked: Set<string>, choice: UpgradeChoice): void {
   if (choice.kind === 'prestige' && choice.into) blocked.add(choice.into)
   if (choice.kind === 'evolution') {
@@ -280,43 +219,56 @@ function blockChoice(blocked: Set<string>, choice: UpgradeChoice): void {
   }
 }
 
-/** A different form of a weapon you already have. Never a new family, never a copy you carry. */
+/** Missed rarity / nothing left: deliverChest turns this into consolation gold. */
+function chestMiss(): UpgradeChoice {
+  return { kind: 'gold', id: 'chest', level: 0, rarity: 'common' }
+}
+
+/**
+ * Chest prestige uses the rolled rarity as-is (72/20/6/2). No floor bump to the
+ * next available form — if that tier is not open, the chest pays gold instead.
+ */
 function rollPrestige(world: World, p: Player, blocked: Set<string>): UpgradeChoice {
   const owned = new Set(p.weapons.map((slot) => slot.id))
   const free = (id: string): boolean => !owned.has(id) && !blocked.has(id)
-  const slots = p.weapons.filter((slot) => betterOffers(slot.id).some((offer) => free(offer.id)))
-  if (slots.length === 0) return chestWeapon(world, p, blocked)
-  const fresh = slots.filter((slot) => ![...blocked].some((id) => weaponFamily(id) === weaponFamily(slot.id)))
-  const pool = fresh.length > 0 ? fresh : slots
-  const slot = pool[world.rng.int(pool.length)]
-  const family = weaponFamily(slot.id)
-  const open = betterOffers(slot.id).filter((offer) => free(offer.id))
-  if (open.length === 0) return chestWeapon(world, p, blocked)
-  const floor = offerRank(slot.id) + 1
   const rarity = rollChestRarity(world, p.stats.luck)
-  const rank = Math.max(CHEST_RARITIES.indexOf(rarity), floor)
-  if (rank >= CHEST_RARITIES.indexOf('legendary')) {
+
+  if (rarity === 'legendary') {
     const evo = readyEvolution(p)
     const into = evo ? WEAPONS[evo.id]?.evolvesInto : undefined
-    if (evo && into && weaponFamily(evo.id) === family && free(into) && offerRank(into) > offerRank(slot.id)) {
+    if (evo && into && free(into)) {
       return { kind: 'evolution', id: evo.id, level: 1, rarity: 'legendary' }
     }
   }
-  const exact = open.find((offer) => CHEST_RARITIES.indexOf(offer.rarity) === rank)
-  const withinRoll = open
-    .filter((offer) => CHEST_RARITIES.indexOf(offer.rarity) <= rank)
-    .sort((a, b) => CHEST_RARITIES.indexOf(b.rarity) - CHEST_RARITIES.indexOf(a.rarity))[0]
-  const form = exact ?? withinRoll ?? open.slice().sort((a, b) => CHEST_RARITIES.indexOf(a.rarity) - CHEST_RARITIES.indexOf(b.rarity))[0]
-  if (!form || offerRank(form.id) <= offerRank(slot.id)) return chestWeapon(world, p, blocked)
-  return { kind: 'prestige', id: slot.id, into: form.id, level: slot.level, rarity: form.rarity }
+
+  const matches: { slot: WeaponSlot; offer: { id: string; rarity: ChestRarity } }[] = []
+  for (const slot of p.weapons) {
+    for (const offer of betterOffers(slot.id)) {
+      if (!free(offer.id) || offer.rarity !== rarity) continue
+      matches.push({ slot, offer })
+    }
+  }
+  if (matches.length === 0) return chestMiss()
+
+  const fresh = matches.filter((m) => ![...blocked].some((id) => weaponFamily(id) === weaponFamily(m.slot.id)))
+  const pool = fresh.length > 0 ? fresh : matches
+  const pick = pool[world.rng.int(pool.length)]
+  return { kind: 'prestige', id: pick.slot.id, into: pick.offer.id, level: pick.slot.level, rarity: pick.offer.rarity }
 }
 
-/** One chest reward. The player may take it or leave it. Accepting replaces the weapon and keeps its level. */
+/** One chest reward. Prestige/evolution opens the UI; anything else becomes consolation gold. */
 export function chestChoices(world: World, p: Player, blocked: Set<string> = new Set()): UpgradeChoice[] {
   const choice = rollPrestige(world, p, blocked)
   blockChoice(blocked, choice)
   return [choice]
 }
+
+/** True when the chest should open the swap UI instead of paying consolation gold. */
+export function isChestUiOffer(choice: UpgradeChoice | undefined): boolean {
+  return !!choice && (choice.kind === 'prestige' || choice.kind === 'evolution')
+}
+
+export const CHEST_CONSOLATION_GOLD = 10
 
 /** One pickup opens a different chest for every living player. Solo still queues a personal chest. */
 export function openChest(world: World, p: Player): void {

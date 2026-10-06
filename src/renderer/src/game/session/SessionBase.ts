@@ -126,8 +126,7 @@ export abstract class SessionBase {
   private frame(alpha: number, frameSeconds: number): void {
     const world = this.world
     for (const ev of world.events) {
-      if (ev.e === 'discover' && ev.playerId === this.localId) this.unlockWeapon(ev.weaponId)
-      else if (ev.e === 'chest' && ev.playerId === this.localId) this.hud.banner('PRESTIGIO', ev.lines, 'chest', true)
+      if (ev.e === 'discover' && ev.playerId === this.localId && !world.practice) this.unlockWeapon(ev.weaponId)
       else if (ev.e === 'evolution') {
         const who = ev.playerId === this.localId ? '' : `${world.playerById(ev.playerId)?.name ?? ''}: `
         this.hud.banner('¡EVOLUCIÓN!', [who + WEAPONS[ev.weaponId].name], 'evolution')
@@ -304,7 +303,7 @@ export abstract class SessionBase {
    * Safe to call more than once: only the part not yet saved is added.
    */
   saveProgress(): void {
-    if (this.destroyed) return
+    if (this.destroyed || this.world.practice) return
     this.flushProgress(this.liveInfo(), true)
   }
 
@@ -345,6 +344,15 @@ export abstract class SessionBase {
     accountOld: number
     accountNew: number
   } {
+    const empty = {
+      gained: 0,
+      oldLevel: 0,
+      newLevel: 0,
+      accountGained: 0,
+      accountOld: 0,
+      accountNew: 0
+    }
+    if (this.world.practice) return empty
     const save = this.deps.save
     if (this.passAtRunStart < 0) this.passAtRunStart = passLevel(save.battlePass.xp)
     if (this.accountAtRunStart < 0) this.accountAtRunStart = accountLevel(save.accountXp)

@@ -1,3 +1,6 @@
+/** Cap off-screen chest arrows so a field of loot cannot flood the DOM. */
+export const MAX_CHEST_EDGE_MARKERS = 10
+
 /** Screen-edge pointers for teammates and chests that leave the view. */
 export class EdgeMarkers {
   private readonly root: HTMLElement
@@ -33,7 +36,9 @@ export class EdgeMarkers {
 
     let x = sw / 2 + dx / scale
     let y = sh / 2 + dy / scale
-    for (const p of this.placed) {
+    const n = Math.min(this.placed.length, 24)
+    for (let i = 0; i < n; i++) {
+      const p = this.placed[i]
       if ((p.x - x) ** 2 + (p.y - y) ** 2 > 34 * 34) continue
       if (Math.abs(dx) / hw > Math.abs(dy) / hh) y += y < sh / 2 ? -42 : 42
       else x += x < sw / 2 ? -42 : 42
@@ -46,11 +51,12 @@ export class EdgeMarkers {
     if (!node) {
       node = document.createElement('div')
       node.className = 'edge-marker'
-      node.innerHTML = '<i class="edge-arrow"></i><img class="edge-icon" alt="" /><span class="edge-copy"><b></b><small></small></span>'
+      node.innerHTML = '<i class="edge-arrow"></i><img class="edge-icon" alt="" decoding="async" /><span class="edge-copy"><b></b><small></small></span>'
       this.root.append(node)
       this.nodes.push(node)
     }
-    node.classList.toggle('chest', kind === 'chest' || (!kind && !!icon))
+    const isChest = kind === 'chest' || (!kind && !!icon)
+    node.classList.toggle('chest', isChest)
     node.classList.toggle('boss', kind === 'boss')
     node.classList.toggle('portal', kind === 'portal')
     node.style.display = 'flex'
@@ -62,7 +68,10 @@ export class EdgeMarkers {
     const iconEl = node.querySelector('.edge-icon') as HTMLImageElement
     const nameEl = node.querySelector('b') as HTMLElement
     if (icon) {
-      iconEl.src = icon
+      if (iconEl.dataset.src !== icon) {
+        iconEl.dataset.src = icon
+        iconEl.src = icon
+      }
       iconEl.style.display = 'block'
       nameEl.style.display = 'none'
     } else {

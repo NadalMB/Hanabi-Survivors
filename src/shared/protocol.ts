@@ -58,7 +58,7 @@ export type GameEvent =
   | { e: 'endless' }
   | { e: 'portal' }
   | { e: 'world'; world: number }
-  | { e: 'telegraph'; x: number; y: number; radius: number; tint: number }
+  | { e: 'telegraph'; x: number; y: number; radius: number; tint: number; life?: number; x2?: number; y2?: number }
 
 export interface PlayerResult {
   id: PlayerId

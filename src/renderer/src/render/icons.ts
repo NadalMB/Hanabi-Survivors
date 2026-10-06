@@ -22,6 +22,18 @@ import sealSrc from '../assets/icons/seal.png'
 import thunderSrc from '../assets/icons/thunder.png'
 import thunderStormSrc from '../assets/icons/thunder_storm.png'
 import thunderEyeSrc from '../assets/icons/thunder_eye.png'
+import lanternSrc from '../assets/icons/lantern.png'
+import heartSrc from '../assets/icons/heart.png'
+import fistSrc from '../assets/icons/fist.png'
+import omamoriLuckSrc from '../assets/icons/omamori_luck.png'
+import crystalSrc from '../assets/icons/crystal.png'
+import leafSrc from '../assets/icons/leaf.png'
+import featherSrc from '../assets/icons/feather.png'
+import mirrorSrc from '../assets/icons/mirror.png'
+import teaSrc from '../assets/icons/tea.png'
+import bellSrc from '../assets/icons/bell.png'
+import armorSrc from '../assets/icons/armor.png'
+import hourglassSrc from '../assets/icons/hourglass.png'
 
 type Ctx = CanvasRenderingContext2D
 
@@ -30,6 +42,7 @@ const GLYPH_SRCS: Record<string, string> = {
   fan_twins: fanTwinsSrc,
   fan_blade: fanBladeSrc,
   omamori: omamoriSrc,
+  omamori_luck: omamoriLuckSrc,
   kunai: kunaiSrc,
   kunai_storm: kunaiStormSrc,
   foxfire: foxfireSrc,
@@ -44,7 +57,18 @@ const GLYPH_SRCS: Record<string, string> = {
   seal: sealSrc,
   thunder: thunderSrc,
   thunder_storm: thunderStormSrc,
-  thunder_eye: thunderEyeSrc
+  thunder_eye: thunderEyeSrc,
+  lantern: lanternSrc,
+  heart: heartSrc,
+  fist: fistSrc,
+  crystal: crystalSrc,
+  leaf: leafSrc,
+  feather: featherSrc,
+  mirror: mirrorSrc,
+  tea: teaSrc,
+  bell: bellSrc,
+  armor: armorSrc,
+  hourglass: hourglassSrc
 }
 
 const glyphs: Record<string, HTMLImageElement> = {}
@@ -329,389 +353,51 @@ const CORE_SYMBOLS: Record<Exclude<IconKey, PrestigeIconKey>, (ctx: Ctx) => void
   },
 
   crossed_swords(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(255,120,90,0.9)', 10)
-    flamePath(ctx, 32, 40, 12, 22)
-    ctx.fillStyle = rad(ctx, 32, 40, 22, [[0, 'rgba(255,240,180,0.9)'], [1, 'rgba(255,80,60,0)']])
-    ctx.fill()
-    noShadow(ctx)
-    for (const s of [-1, 1]) {
-      ctx.save()
-      ctx.translate(32, 33)
-      ctx.rotate((s * Math.PI) / 4)
-      dropShadow(ctx)
-      ctx.beginPath()
-      ctx.moveTo(-2.2, 4)
-      ctx.lineTo(-2.2, -20)
-      ctx.lineTo(0, -23)
-      ctx.lineTo(2.2, -20)
-      ctx.lineTo(2.2, 4)
-      ctx.closePath()
-      fillStroke(ctx, lin(ctx, -2, 0, 2, 0, [[0, '#ffffff'], [1, '#93a0cc']]), INK, 1.3)
-      ctx.beginPath()
-      ctx.rect(-6, 4, 12, 3)
-      fillStroke(ctx, '#ffd166', INK, 1.2)
-      ctx.beginPath()
-      ctx.rect(-2, 7, 4, 10)
-      fillStroke(ctx, '#3a1d5c', INK, 1.2)
-      ctx.restore()
-    }
-    ctx.restore()
+    paintGlyph(ctx, glyphs.fist)
   },
 
   hourglass(ctx) {
-    ctx.save()
-    dropShadow(ctx)
-    const wood = lin(ctx, 0, 0, 0, 64, [[0, '#d9a066'], [1, '#7a4a22']])
-    ctx.beginPath()
-    ctx.roundRect(16, 10, 32, 6, 2)
-    ctx.roundRect(16, 48, 32, 6, 2)
-    fillStroke(ctx, wood, INK, 1.5)
-    noShadow(ctx)
-    ctx.beginPath()
-    ctx.moveTo(20, 16)
-    ctx.lineTo(44, 16)
-    ctx.quadraticCurveTo(44, 26, 34, 32)
-    ctx.quadraticCurveTo(44, 38, 44, 48)
-    ctx.lineTo(20, 48)
-    ctx.quadraticCurveTo(20, 38, 30, 32)
-    ctx.quadraticCurveTo(20, 26, 20, 16)
-    ctx.closePath()
-    ctx.fillStyle = 'rgba(200,240,255,0.35)'
-    ctx.fill()
-    ctx.strokeStyle = '#cfefff'
-    ctx.lineWidth = 1.5
-    ctx.stroke()
-    glowOn(ctx, 'rgba(95,242,255,0.9)', 6)
-    ctx.fillStyle = lin(ctx, 0, 20, 0, 48, [[0, '#9ff8ff'], [1, '#2a8cff']])
-    ctx.beginPath()
-    ctx.moveTo(24, 22)
-    ctx.lineTo(40, 22)
-    ctx.quadraticCurveTo(38, 27, 32, 30)
-    ctx.quadraticCurveTo(26, 27, 24, 22)
-    ctx.fill()
-    ctx.beginPath()
-    ctx.moveTo(32, 32)
-    ctx.lineTo(41, 47)
-    ctx.lineTo(23, 47)
-    ctx.closePath()
-    ctx.fill()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.hourglass)
   },
 
   leaf(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(130,255,170,0.8)', 6)
-    ctx.strokeStyle = 'rgba(200,255,220,0.9)'
-    ctx.lineWidth = 2
-    for (let k = 0; k < 3; k++) {
-      ctx.beginPath()
-      ctx.moveTo(8, 24 + k * 9)
-      ctx.quadraticCurveTo(18, 20 + k * 9, 24, 26 + k * 9)
-      ctx.stroke()
-    }
-    noShadow(ctx)
-    ctx.translate(36, 32)
-    ctx.rotate(-0.6)
-    dropShadow(ctx)
-    ctx.beginPath()
-    ctx.moveTo(0, -20)
-    ctx.bezierCurveTo(14, -12, 14, 10, 0, 20)
-    ctx.bezierCurveTo(-14, 10, -14, -12, 0, -20)
-    fillStroke(ctx, lin(ctx, -10, -20, 10, 20, [[0, '#b6ffc4'], [1, '#1f9a5a']]), INK, 1.5)
-    noShadow(ctx)
-    ctx.strokeStyle = 'rgba(255,255,255,0.7)'
-    ctx.lineWidth = 1.2
-    ctx.beginPath()
-    ctx.moveTo(0, -16)
-    ctx.lineTo(0, 18)
-    for (let y = -10; y < 14; y += 6) {
-      ctx.moveTo(0, y)
-      ctx.lineTo(-6, y - 4)
-      ctx.moveTo(0, y)
-      ctx.lineTo(6, y - 4)
-    }
-    ctx.stroke()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.leaf)
   },
 
   lantern(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(255,170,80,1)', 14)
-    ctx.beginPath()
-    ctx.ellipse(32, 33, 14, 16, 0, 0, Math.PI * 2)
-    ctx.fillStyle = rad(ctx, 32, 33, 17, [[0, '#fff3c4'], [0.5, '#ff8a3b'], [1, '#c8202f']])
-    ctx.fill()
-    noShadow(ctx)
-    ctx.strokeStyle = 'rgba(120,20,30,0.6)'
-    ctx.lineWidth = 1
-    for (let y = 22; y <= 44; y += 5.5) {
-      ctx.beginPath()
-      ctx.ellipse(32, y, 14 * Math.sqrt(Math.max(0, 1 - ((y - 33) / 16) ** 2)), 1.5, 0, 0, Math.PI * 2)
-      ctx.stroke()
-    }
-    ctx.beginPath()
-    ctx.roundRect(24, 15, 16, 4, 1)
-    ctx.roundRect(24, 47, 16, 4, 1)
-    fillStroke(ctx, '#2b1d33', INK, 1)
-    ctx.strokeStyle = '#2b1d33'
-    ctx.lineWidth = 1.5
-    ctx.beginPath()
-    ctx.moveTo(32, 15)
-    ctx.lineTo(32, 9)
-    ctx.stroke()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.lantern)
   },
 
   omamori(ctx) {
-    ctx.save()
-    dropShadow(ctx)
-    ctx.beginPath()
-    ctx.moveTo(20, 20)
-    ctx.quadraticCurveTo(32, 12, 44, 20)
-    ctx.lineTo(44, 50)
-    ctx.quadraticCurveTo(32, 54, 20, 50)
-    ctx.closePath()
-    fillStroke(ctx, lin(ctx, 20, 0, 44, 0, [[0, '#ff4f6a'], [1, '#9b0f2a']]), INK, 1.5)
-    noShadow(ctx)
-    ctx.strokeStyle = '#ffd166'
-    ctx.lineWidth = 1.5
-    ctx.strokeRect(24, 25, 16, 21)
-    glowOn(ctx, 'rgba(255,209,102,1)', 6)
-    ctx.fillStyle = '#ffd166'
-    starPath(ctx, 32, 35.5, 5, 6, 2.5)
-    ctx.fill()
-    noShadow(ctx)
-    ctx.strokeStyle = '#ffd166'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.moveTo(32, 17)
-    ctx.quadraticCurveTo(26, 8, 22, 12)
-    ctx.moveTo(32, 17)
-    ctx.quadraticCurveTo(38, 8, 42, 12)
-    ctx.stroke()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.omamori_luck)
   },
 
   heart(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(110,255,160,0.9)', 10)
-    ctx.beginPath()
-    ctx.moveTo(32, 50)
-    ctx.bezierCurveTo(10, 36, 12, 14, 24, 15)
-    ctx.bezierCurveTo(29, 15, 31, 19, 32, 22)
-    ctx.bezierCurveTo(33, 19, 35, 15, 40, 15)
-    ctx.bezierCurveTo(52, 14, 54, 36, 32, 50)
-    ctx.closePath()
-    ctx.fillStyle = lin(ctx, 16, 14, 48, 50, [[0, '#c8ffd8'], [0.45, '#33c977'], [1, '#0d6b3d']])
-    ctx.fill()
-    noShadow(ctx)
-    ctx.strokeStyle = INK
-    ctx.lineWidth = 1.5
-    ctx.stroke()
-    ctx.fillStyle = 'rgba(255,255,255,0.75)'
-    ctx.beginPath()
-    ctx.ellipse(24, 23, 4, 2.5, -0.6, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.heart)
   },
 
   crystal(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(190,140,255,1)', 12)
-    ctx.beginPath()
-    ctx.moveTo(32, 10)
-    ctx.lineTo(46, 26)
-    ctx.lineTo(32, 54)
-    ctx.lineTo(18, 26)
-    ctx.closePath()
-    ctx.fillStyle = lin(ctx, 18, 10, 46, 54, [[0, '#f3e8ff'], [0.5, '#a66bff'], [1, '#3a1680']])
-    ctx.fill()
-    noShadow(ctx)
-    ctx.strokeStyle = INK
-    ctx.lineWidth = 1.5
-    ctx.stroke()
-    ctx.fillStyle = 'rgba(255,255,255,0.55)'
-    ctx.beginPath()
-    ctx.moveTo(32, 10)
-    ctx.lineTo(46, 26)
-    ctx.lineTo(32, 30)
-    ctx.lineTo(18, 26)
-    ctx.closePath()
-    ctx.fill()
-    ctx.strokeStyle = 'rgba(255,255,255,0.6)'
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    ctx.moveTo(32, 30)
-    ctx.lineTo(32, 54)
-    ctx.stroke()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.crystal)
   },
 
   feather(ctx) {
-    ctx.save()
-    ctx.translate(32, 32)
-    ctx.rotate(0.6)
-    glowOn(ctx, 'rgba(160,230,255,0.9)', 8)
-    ctx.beginPath()
-    ctx.moveTo(0, -24)
-    ctx.bezierCurveTo(12, -14, 10, 10, 0, 22)
-    ctx.bezierCurveTo(-10, 10, -12, -14, 0, -24)
-    ctx.fillStyle = lin(ctx, 0, -24, 0, 22, [[0, '#ffffff'], [1, '#7fd0ff']])
-    ctx.fill()
-    noShadow(ctx)
-    ctx.strokeStyle = INK
-    ctx.lineWidth = 1.3
-    ctx.stroke()
-    ctx.strokeStyle = 'rgba(40,80,140,0.6)'
-    ctx.lineWidth = 1
-    for (let y = -16; y < 16; y += 5) {
-      ctx.beginPath()
-      ctx.moveTo(0, y)
-      ctx.lineTo(-7, y - 4)
-      ctx.moveTo(0, y)
-      ctx.lineTo(7, y - 4)
-      ctx.stroke()
-    }
-    ctx.strokeStyle = '#2b4a7a'
-    ctx.lineWidth = 1.6
-    ctx.beginPath()
-    ctx.moveTo(0, -20)
-    ctx.lineTo(0, 28)
-    ctx.stroke()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.feather)
   },
 
   mirror(ctx) {
-    ctx.save()
-    ctx.globalAlpha = 0.45
-    ctx.beginPath()
-    ctx.arc(26, 28, 15, 0, Math.PI * 2)
-    ctx.fillStyle = '#8ff4ff'
-    ctx.fill()
-    ctx.globalAlpha = 1
-    dropShadow(ctx)
-    ctx.beginPath()
-    ctx.roundRect(33, 40, 6, 16, 2)
-    fillStroke(ctx, '#7a4a22', INK, 1.3)
-    ctx.beginPath()
-    ctx.arc(36, 30, 15, 0, Math.PI * 2)
-    fillStroke(ctx, lin(ctx, 20, 14, 52, 46, [[0, '#ffe08a'], [1, '#a36b00']]), INK, 1.5)
-    noShadow(ctx)
-    glowOn(ctx, 'rgba(160,240,255,0.9)', 6)
-    ctx.beginPath()
-    ctx.arc(36, 30, 11, 0, Math.PI * 2)
-    ctx.fillStyle = rad(ctx, 32, 26, 14, [[0, '#ffffff'], [1, '#6fc8ff']])
-    ctx.fill()
-    noShadow(ctx)
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.moveTo(30, 28)
-    ctx.lineTo(36, 22)
-    ctx.moveTo(32, 34)
-    ctx.lineTo(41, 25)
-    ctx.stroke()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.mirror)
   },
 
   bell(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(255,209,102,0.9)', 10)
-    ctx.beginPath()
-    ctx.arc(32, 34, 15, 0, Math.PI * 2)
-    ctx.fillStyle = rad(ctx, 27, 28, 18, [[0, '#fff6c8'], [0.5, '#ffc93a'], [1, '#b8770b']])
-    ctx.fill()
-    noShadow(ctx)
-    ctx.strokeStyle = INK
-    ctx.lineWidth = 1.5
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(18, 36)
-    ctx.lineTo(46, 36)
-    ctx.stroke()
-    ctx.fillStyle = INK
-    ctx.beginPath()
-    ctx.arc(32, 42, 2.5, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.fillRect(31, 42, 2, 6)
-    ctx.strokeStyle = '#e0243c'
-    ctx.lineWidth = 3
-    ctx.beginPath()
-    ctx.moveTo(32, 19)
-    ctx.quadraticCurveTo(24, 10, 20, 14)
-    ctx.moveTo(32, 19)
-    ctx.quadraticCurveTo(40, 10, 44, 14)
-    ctx.stroke()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.bell)
   },
 
   tea(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(255,255,255,0.7)', 4)
-    ctx.strokeStyle = 'rgba(255,255,255,0.8)'
-    ctx.lineWidth = 2
-    for (const x of [26, 33, 40]) {
-      ctx.beginPath()
-      ctx.moveTo(x, 22)
-      ctx.bezierCurveTo(x - 4, 17, x + 4, 14, x, 8)
-      ctx.stroke()
-    }
-    noShadow(ctx)
-    dropShadow(ctx)
-    ctx.beginPath()
-    ctx.moveTo(16, 26)
-    ctx.lineTo(48, 26)
-    ctx.quadraticCurveTo(47, 50, 32, 52)
-    ctx.quadraticCurveTo(17, 50, 16, 26)
-    ctx.closePath()
-    fillStroke(ctx, lin(ctx, 16, 0, 48, 0, [[0, '#8fd6a6'], [1, '#2e7a52']]), INK, 1.5)
-    noShadow(ctx)
-    ctx.beginPath()
-    ctx.ellipse(32, 26, 16, 4, 0, 0, Math.PI * 2)
-    fillStroke(ctx, '#a6e86a', INK, 1.3)
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)'
-    ctx.lineWidth = 1.5
-    ctx.beginPath()
-    ctx.moveTo(20, 32)
-    ctx.quadraticCurveTo(21, 42, 26, 47)
-    ctx.stroke()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.tea)
   },
 
   armor(ctx) {
-    ctx.save()
-    dropShadow(ctx)
-    ctx.beginPath()
-    ctx.moveTo(32, 12)
-    ctx.lineTo(50, 18)
-    ctx.lineTo(48, 36)
-    ctx.quadraticCurveTo(44, 48, 32, 54)
-    ctx.quadraticCurveTo(20, 48, 16, 36)
-    ctx.lineTo(14, 18)
-    ctx.closePath()
-    fillStroke(ctx, lin(ctx, 14, 12, 50, 54, [[0, '#d9e2f5'], [0.5, '#7d8bb0'], [1, '#3a4266']]), INK, 1.8)
-    noShadow(ctx)
-    ctx.strokeStyle = '#ff5fa2'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.moveTo(32, 16)
-    ctx.lineTo(32, 50)
-    ctx.stroke()
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)'
-    ctx.lineWidth = 1.5
-    for (const y of [26, 34, 42]) {
-      ctx.beginPath()
-      ctx.moveTo(20, y - 2)
-      ctx.quadraticCurveTo(32, y + 3, 44, y - 2)
-      ctx.stroke()
-    }
-    glowOn(ctx, 'rgba(255,209,102,0.9)', 6)
-    ctx.fillStyle = '#ffd166'
-    ctx.beginPath()
-    ctx.arc(32, 22, 3, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.armor)
   },
 
   book(ctx) {
@@ -1036,8 +722,8 @@ const PRESTIGE_GLYPH: Partial<Record<PrestigeIconKey, string>> = {
   foxfire_rare: 'foxfire',
   foxfire_epic: 'foxfire',
   foxfire_legendary: 'foxfire',
-  thunder_rare: 'thunder_storm',
-  thunder_epic: 'thunder_eye',
+  thunder_rare: 'thunder',
+  thunder_epic: 'thunder_storm',
   aura_rare: 'barrier',
   aura_epic: 'barrier',
   aura_legendary: 'barrier',

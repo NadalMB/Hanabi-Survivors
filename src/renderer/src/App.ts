@@ -10,6 +10,7 @@ import { ClientNet } from './net/ClientNet'
 import type { HostNet } from './net/HostNet'
 import { FriendPresence, type RoomInvite } from './net/friends'
 import { joinOnline } from './net/peer'
+import type { PracticeLoadout } from './game/practice'
 import { resolveStarter } from './game/data/characters'
 import { loadoutFromSave } from './game/data/cosmetics'
 import { el } from './ui/dom'
@@ -20,6 +21,7 @@ import { coopMenu } from './ui/screens/Coop'
 import { clientLobby, hostLobby, type Invite } from './ui/screens/Lobby'
 import { mainMenu } from './ui/screens/MainMenu'
 import { album } from './ui/screens/Album'
+import { practice } from './ui/screens/Practice'
 import { battlePass } from './ui/screens/BattlePass'
 import { boutique } from './ui/screens/Boutique'
 import { settings } from './ui/screens/Settings'
@@ -128,6 +130,25 @@ export class App {
 
   album(): void {
     this.show(album(this))
+  }
+
+  practiceDesk(): void {
+    this.show(practice(this))
+  }
+
+  startPractice(loadout: PracticeLoadout): void {
+    this.run(
+      new HostSession(
+        {
+          ...this.sessionDeps(),
+          onExit: () => {
+            this.session = null
+            this.practiceDesk()
+          }
+        },
+        { characterId: loadout.characterId, practice: loadout }
+      )
+    )
   }
 
   settings(): void {
