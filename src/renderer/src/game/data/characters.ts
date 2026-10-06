@@ -98,7 +98,7 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     id: 'hikari',
     name: 'Hikari',
     title: 'Sacerdotisa del Trueno',
-    description: 'Empieza con el Tambor de Raijin. +15% de suerte.',
+    description: 'Empieza con el Rayo de Raijin. +15% de suerte.',
     weapon: 'thunder',
     mods: { luck: 0.15 },
     palette: { hair: '#ffe066', hairShade: '#d9a62b', eyes: '#9a8cff', eyesDark: '#3f2f9b', outfit: '#3d438f', outfitShade: '#262a66', accent: '#ffe066' },

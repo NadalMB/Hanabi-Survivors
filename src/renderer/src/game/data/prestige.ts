@@ -124,9 +124,8 @@ const FAMILIES: FamilyForms[] = [
     legendIcon: 'sakura',
     rows: [
       { rarity: 'common', name: 'Corte Breve', description: 'Un tajo más corto y más rápido. Suele quedar por debajo de un abanico crecido.', form: 'cross', visual: ProjVisual.Petal, base: s({ damage: 16, cooldown: 0.72, amount: 1, area: 0.82, duration: 0.16, interval: 0.1 }) },
-      { rarity: 'rare', name: 'Cuatro Vientos', description: 'Cuatro tajos, uno cada 90°. Ataca más rápido que el abanico.', form: 'cross', visual: ProjVisual.Petal, base: s({ damage: 22, cooldown: 0.68, amount: 4, area: 1.22, speed: 0.85, duration: 0.2, interval: 0.05 }) },
-      { rarity: 'epic', name: 'Barrido Gemelo', description: 'Un barrido de 190° a cada lado. Más lento, más daño y más alcance.', form: 'sides', visual: ProjVisual.Petal, base: s({ damage: 36, cooldown: 1.35, amount: 1, area: 1.6, speed: 0.68, duration: 0.28, knockback: 1.15, interval: 0.08 }) },
-      { rarity: 'legendary', name: 'Ciclón Carmesí', description: 'Una vuelta completa de 360°. El más lento, el que más duele y más abarca.', form: 'spin', visual: ProjVisual.Petal + GLOW, base: s({ damage: 54, cooldown: 1.9, amount: 1, area: 2.05, speed: 0.5, duration: 0.34, knockback: 1.35, interval: 0.08 }) }
+      { rarity: 'rare', name: 'Abanicos Gemelos', description: 'Dos abanicos de sakura cruzan el aire: cuatro tajos, uno cada 90°. Ataca más rápido que el abanico.', form: 'cross', visual: ProjVisual.Petal, base: s({ damage: 22, cooldown: 0.68, amount: 4, area: 1.22, speed: 0.85, duration: 0.2, interval: 0.05 }) },
+      { rarity: 'epic', name: 'Filo Sakura', description: 'Una hoja de pétalos con guarda de abanico. Barrido de 190° a cada lado: más lento, más daño y más alcance.', form: 'sides', visual: ProjVisual.Petal, base: s({ damage: 36, cooldown: 1.35, amount: 1, area: 1.6, speed: 0.68, duration: 0.28, knockback: 1.15, interval: 0.08 }) }
     ]
   },
   {
@@ -172,8 +171,8 @@ const FAMILIES: FamilyForms[] = [
     legendIcon: 'storm',
     rows: [
       { rarity: 'common', name: 'Chispazo', description: 'Un rayo corto y flojo sobre un enemigo cercano.', visual: 0, base: s({ damage: 14, cooldown: 2.1, amount: 1, area: 0.85, duration: 0, interval: 0.12 }) },
-      { rarity: 'rare', name: 'Trueno en Cadena', description: 'El rayo salta de enemigo en enemigo.', form: 'storm', visual: 0, base: s({ damage: 36, cooldown: 1.7, amount: 3, area: 1.3, duration: 0, interval: 0.08 }) },
-      { rarity: 'epic', name: 'Círculo de Raijin', description: 'Varios rayos caen en cadena alrededor tuyo.', form: 'storm', visual: 0, base: s({ damage: 52, cooldown: 1.35, amount: 5, area: 1.6, duration: 0, interval: 0.06 }) },
+      { rarity: 'rare', name: 'Tormenta de Raijin', description: 'Impacto amplio: cerca del centro destroza, lejos del impacto hace mucho menos daño.', visual: 0, base: s({ damage: 34, cooldown: 1.75, amount: 2, area: 2.15, duration: 0, interval: 0.1 }) },
+      { rarity: 'epic', name: 'Ojo de la Tormenta', description: 'Al golpear, el rayo persigue al siguiente enemigo en cadena y pierde fuerza en cada salto.', form: 'storm', visual: 0, base: s({ damage: 48, cooldown: 1.4, amount: 5, area: 0.85, duration: 0, interval: 0.06 }) },
       { rarity: 'legendary', name: 'Juicio Dorado', description: 'Un círculo de rayos dorados y cadenas que no paran.', form: 'storm', visual: GLOW, base: s({ damage: 72, cooldown: 1.0, amount: 7, area: 2, duration: 0, interval: 0.05 }) }
     ]
   },
@@ -231,8 +230,7 @@ export function buildPrestigeWeapons(): Record<string, WeaponDef> {
   for (const family of FAMILIES) {
     const list: WeaponDef[] = []
     for (const row of family.rows) {
-      if (row.rarity === 'common') continue
-      if (row.rarity === 'legendary' && family.family !== 'katana') continue
+      if (row.rarity === 'common' || row.rarity === 'legendary') continue
       const id = `${family.family}_${row.rarity}`
       const def: WeaponDef = {
         id,

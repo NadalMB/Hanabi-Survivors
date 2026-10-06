@@ -3,7 +3,7 @@ import { WEAPONS, type WeaponDef } from '../data/weapons'
 import type { Player, WeaponSlot } from '../sim/Player'
 import { ProjKind, ProjVisual, visualIndex } from '../sim/ProjectilePool'
 import type { World } from '../sim/World'
-import { areaDamage, damageEnemy, nearestEnemy, randomEnemyNear } from './combat'
+import { areaDamage, areaDamageFalloff, damageEnemy, nearestEnemy, randomEnemyNear } from './combat'
 
 export const AURA_BASE_RADIUS = 64
 const SLASH_RX = 110
@@ -272,28 +272,45 @@ function fireLightning(world: World, p: Player, w: WeaponSlot, def: WeaponDef): 
   const e = world.enemies
   const t = randomEnemyNear(world, p.x, p.y, 560)
   if (t < 0) return
+
+  // Prestige 1 (rare): wide blast, damage falls off away from the impact.
+  if (def.prestige && def.form !== 'storm' && !def.evolution) {
+    const radius = STRIKE_BASE_RADIUS * s.area
+    const x = e.x[t]
+    const y = e.y[t]
+    areaDamageFalloff(world, p, x, y, radius, s.damage, 0)
+    world.events.push({ e: 'strike', x, y, radius, evolved: false, playerId: p.id })
+    return
+  }
+
+  // Prestige 2 (storm) / evolution: bolt jumps to the next foe and loses power each hop.
+  if (def.form === 'storm' || def.evolution) {
+    const hops = Math.max(2, Math.round(s.amount))
+    const radius = STRIKE_BASE_RADIUS * Math.max(0.45, s.area * 0.55)
+    const hit = new Set<number>()
+    let idx = t
+    let dmg = s.damage
+    let x = e.x[idx]
+    let y = e.y[idx]
+    for (let k = 0; k < hops; k++) {
+      if (idx < 0) break
+      hit.add(idx)
+      x = e.x[idx]
+      y = e.y[idx]
+      damageEnemy(world, idx, dmg, 0, -1, 0, p)
+      world.events.push({ e: 'strike', x, y, radius, evolved: true, playerId: p.id })
+      dmg *= 0.72
+      idx = nearestEnemy(world, x, y, 260 * Math.max(1, s.area), hit)
+    }
+    return
+  }
+
+  // Base Rayo de Raijin: tight single strike.
   const radius = STRIKE_BASE_RADIUS * s.area
-  let x = e.x[t]
-  let y = e.y[t]
-  const glow = (def.visual ?? 0) >= 32
-  const chained = !!def.evolution || def.form === 'storm'
-  const strikes = glow ? 4 : chained ? 3 : 1
-  for (let k = 0; k < strikes; k++) {
-    areaDamage(world, p, x, y, radius, s.damage, 0)
-    world.events.push({ e: 'strike', x, y, radius, evolved: chained, playerId: p.id })
-    const next = randomEnemyNear(world, x, y, 200)
-    if (next < 0) break
-    x = e.x[next]
-    y = e.y[next]
-  }
-  if (glow) {
-    const n = Math.max(1, Math.round(s.amount))
-    const a = (w.shot / n) * Math.PI * 2
-    const sx = p.x + Math.cos(a) * 150 * s.area
-    const sy = p.y + Math.sin(a) * 150 * s.area
-    areaDamage(world, p, sx, sy, radius * 0.85, s.damage * 0.7, 0)
-    world.events.push({ e: 'strike', x: sx, y: sy, radius: radius * 0.85, evolved: true, playerId: p.id })
-  }
+  const x = e.x[t]
+  const y = e.y[t]
+  areaDamage(world, p, x, y, radius, s.damage, 0)
+  world.events.push({ e: 'strike', x, y, radius, evolved: false, playerId: p.id })
 }
 
 function fireBoomerang(world: World, p: Player, w: WeaponSlot, def: WeaponDef): void {

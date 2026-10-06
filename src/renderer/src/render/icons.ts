@@ -4,6 +4,8 @@
  */
 
 import fanSrc from '../assets/icons/fan.png'
+import fanTwinsSrc from '../assets/icons/fan_twins.png'
+import fanBladeSrc from '../assets/icons/fan_blade.png'
 import omamoriSrc from '../assets/icons/omamori.png'
 import kunaiSrc from '../assets/icons/kunai.png'
 import kunaiStormSrc from '../assets/icons/kunai_storm.png'
@@ -17,11 +19,16 @@ import rocketSrc from '../assets/icons/rocket.png'
 import fireworkSrc from '../assets/icons/firework.png'
 import sakuraSrc from '../assets/icons/sakura.png'
 import sealSrc from '../assets/icons/seal.png'
+import thunderSrc from '../assets/icons/thunder.png'
+import thunderStormSrc from '../assets/icons/thunder_storm.png'
+import thunderEyeSrc from '../assets/icons/thunder_eye.png'
 
 type Ctx = CanvasRenderingContext2D
 
 const GLYPH_SRCS: Record<string, string> = {
   fan: fanSrc,
+  fan_twins: fanTwinsSrc,
+  fan_blade: fanBladeSrc,
   omamori: omamoriSrc,
   kunai: kunaiSrc,
   kunai_storm: kunaiStormSrc,
@@ -34,7 +41,10 @@ const GLYPH_SRCS: Record<string, string> = {
   rocket: rocketSrc,
   firework: fireworkSrc,
   sakura: sakuraSrc,
-  seal: sealSrc
+  seal: sealSrc,
+  thunder: thunderSrc,
+  thunder_storm: thunderStormSrc,
+  thunder_eye: thunderEyeSrc
 }
 
 const glyphs: Record<string, HTMLImageElement> = {}
@@ -287,49 +297,11 @@ const CORE_SYMBOLS: Record<Exclude<IconKey, PrestigeIconKey>, (ctx: Ctx) => void
   },
 
   thunder(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(255,230,90,1)', 12)
-    ctx.beginPath()
-    ctx.moveTo(36, 8)
-    ctx.lineTo(18, 35)
-    ctx.lineTo(30, 35)
-    ctx.lineTo(25, 56)
-    ctx.lineTo(46, 26)
-    ctx.lineTo(34, 26)
-    ctx.closePath()
-    ctx.fillStyle = lin(ctx, 0, 8, 0, 56, [[0, '#ffffff'], [0.5, '#ffe066'], [1, '#ff9f1c']])
-    ctx.fill()
-    noShadow(ctx)
-    ctx.strokeStyle = INK
-    ctx.lineWidth = 1.5
-    ctx.stroke()
-    ctx.restore()
+    paintGlyph(ctx, glyphs.thunder)
   },
 
   storm(ctx) {
-    ctx.save()
-    glowOn(ctx, 'rgba(255,230,90,1)', 10)
-    ctx.beginPath()
-    ctx.moveTo(34, 26)
-    ctx.lineTo(24, 42)
-    ctx.lineTo(31, 42)
-    ctx.lineTo(27, 56)
-    ctx.lineTo(41, 37)
-    ctx.lineTo(34, 37)
-    ctx.lineTo(39, 26)
-    ctx.closePath()
-    ctx.fillStyle = lin(ctx, 0, 26, 0, 56, [[0, '#ffffff'], [1, '#ffd166']])
-    ctx.fill()
-    noShadow(ctx)
-    dropShadow(ctx)
-    ctx.beginPath()
-    ctx.arc(22, 24, 8, Math.PI * 0.5, Math.PI * 1.5)
-    ctx.arc(30, 16, 9, Math.PI, Math.PI * 1.9)
-    ctx.arc(42, 20, 8, Math.PI * 1.3, Math.PI * 0.4)
-    ctx.lineTo(22, 32)
-    ctx.closePath()
-    fillStroke(ctx, lin(ctx, 0, 8, 0, 32, [[0, '#b9a8ff'], [1, '#4a3a8f']]), INK, 1.5)
-    ctx.restore()
+    paintGlyph(ctx, glyphs.thunder_eye)
   },
 
   barrier(ctx) {
@@ -1053,9 +1025,8 @@ function isPrestigeIcon(key: IconKey): key is PrestigeIconKey {
 }
 
 const PRESTIGE_GLYPH: Partial<Record<PrestigeIconKey, string>> = {
-  katana_rare: 'fan',
-  katana_epic: 'fan',
-  katana_legendary: 'sakura',
+  katana_rare: 'fan_twins',
+  katana_epic: 'fan_blade',
   talisman_rare: 'omamori',
   talisman_epic: 'omamori',
   talisman_legendary: 'omamori',
@@ -1065,6 +1036,8 @@ const PRESTIGE_GLYPH: Partial<Record<PrestigeIconKey, string>> = {
   foxfire_rare: 'foxfire',
   foxfire_epic: 'foxfire',
   foxfire_legendary: 'foxfire',
+  thunder_rare: 'thunder_storm',
+  thunder_epic: 'thunder_eye',
   aura_rare: 'barrier',
   aura_epic: 'barrier',
   aura_legendary: 'barrier',
@@ -1084,10 +1057,6 @@ function drawPrestigeSymbol(ctx: Ctx, key: PrestigeIconKey): void {
   }
   const cut = key.lastIndexOf('_')
   const family = key.slice(0, cut) as PrestigeFamily
-  if (family === 'thunder') {
-    CORE_SYMBOLS.thunder(ctx)
-    return
-  }
   const tier = key.slice(cut + 1) as PrestigeTier
   const accent = tier === 'legendary' ? '#ffe08a' : tier === 'epic' ? '#e2c6ff' : tier === 'rare' ? '#9eebff' : '#f4f0ff'
   const metal = tier === 'legendary' ? '#fff1c2' : '#f4f7ff'

@@ -383,7 +383,10 @@ export function hydrateSave(raw: Partial<SaveData> | null | undefined): SaveData
       ? raw.unlockedCharacters.filter((id): id is string => typeof id === 'string' && playable.has(id))
       : defaults.unlockedCharacters,
     unlockedWeapons: Array.isArray(raw.unlockedWeapons)
-      ? raw.unlockedWeapons.filter((id): id is string => typeof id === 'string' && !id.startsWith('guitar') && !id.startsWith('flute'))
+      ? raw.unlockedWeapons.filter(
+          (id): id is string =>
+            typeof id === 'string' && !id.startsWith('guitar') && !id.startsWith('flute') && id !== 'katana_legendary'
+        )
       : defaults.unlockedWeapons,
     unlockedPassives: Array.isArray(raw.unlockedPassives) ? raw.unlockedPassives.filter((id): id is string => typeof id === 'string') : [],
     seenEnemies: Array.isArray(raw.seenEnemies)

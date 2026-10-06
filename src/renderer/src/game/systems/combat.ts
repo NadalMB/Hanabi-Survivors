@@ -82,12 +82,46 @@ export function areaDamage(world: World, owner: Player, x: number, y: number, ra
   return hits
 }
 
-export function nearestEnemy(world: World, x: number, y: number, maxDist: number): number {
+/**
+ * Same as areaDamage, but damage falls off with distance from the center
+ * (full at the impact point, about a quarter at the edge).
+ */
+export function areaDamageFalloff(
+  world: World,
+  owner: Player,
+  x: number,
+  y: number,
+  radius: number,
+  damage: number,
+  knockback: number
+): number {
+  const e = world.enemies
+  const buf = world.grid.result
+  const n = world.grid.query(x, y, radius + world.maxEnemyRadius)
+  let hits = 0
+  const reach = Math.max(1, radius)
+  for (let k = 0; k < n; k++) {
+    const j = buf[k]
+    if (!e.alive[j]) continue
+    const dx = e.x[j] - x
+    const dy = e.y[j] - y
+    const rr = radius + e.radius[j]
+    const d2 = dx * dx + dy * dy
+    if (d2 > rr * rr) continue
+    const d = Math.sqrt(d2) || 1
+    const falloff = 1 - Math.min(1, d / reach) * 0.75
+    damageEnemy(world, j, damage * falloff, dx / d, dy / d, knockback, owner)
+    hits++
+  }
+  return hits
+}
+
+export function nearestEnemy(world: World, x: number, y: number, maxDist: number, skip?: ReadonlySet<number>): number {
   const e = world.enemies
   let best = -1
   let bestD2 = maxDist * maxDist
   for (let i = 0; i < e.count; i++) {
-    if (!e.alive[i]) continue
+    if (!e.alive[i] || skip?.has(i)) continue
     const dx = e.x[i] - x
     const dy = e.y[i] - y
     const d2 = dx * dx + dy * dy

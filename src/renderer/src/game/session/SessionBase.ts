@@ -260,6 +260,7 @@ export abstract class SessionBase {
     this.menuOpen = false
     this.settingsOpen = false
     this.pause.hide()
+    this.deps.input.releaseFocus()
     this.syncMusic()
   }
 

@@ -174,18 +174,18 @@ const CORE: Record<string, WeaponDef> = {
 
   thunder: {
     id: 'thunder',
-    name: 'Tambor de Raijin',
+    name: 'Rayo de Raijin',
     icon: 'thunder',
     behavior: 'lightning',
     description: 'Invoca rayos sobre enemigos aleatorios.',
-    base: { damage: 20, cooldown: 2.6, amount: 2, area: 1, speed: 1, duration: 0, pierce: INF, knockback: 0, interval: 0.12 },
+    base: { damage: 20, cooldown: 2.6, amount: 2, area: 0.55, speed: 1, duration: 0, pierce: INF, knockback: 0, interval: 0.12 },
     levels: [
       lv('+1 rayo.', { amount: 1 }),
-      lv('Área +25%. Daño +8.', { area: 0.25, damage: 8 }),
+      lv('Área +15%. Daño +8.', { area: 0.15, damage: 8 }),
       lv('+1 rayo.', { amount: 1 }),
       lv('Daño +10.', { damage: 10 }),
       lv('+1 rayo. Enfriamiento -0.2 s.', { amount: 1, cooldown: -0.2 }),
-      lv('Área +25%.', { area: 0.25 }),
+      lv('Área +15%.', { area: 0.15 }),
       lv('Daño +15.', { damage: 15 })
     ],
     evolvesWith: 'omamori',
@@ -194,9 +194,9 @@ const CORE: Record<string, WeaponDef> = {
   raijin_wrath: {
     id: 'raijin_wrath',
     name: 'Ira de Raijin',
-    icon: 'thunder',
+    icon: 'storm',
     behavior: 'lightning',
-    description: 'Evolución del Tambor. Rayos en cadena que arrasan el campo.',
+    description: 'Evolución del Rayo. Rayos en cadena que arrasan el campo.',
     base: { damage: 45, cooldown: 1.6, amount: 6, area: 1.8, speed: 1, duration: 0, pierce: INF, knockback: 0, interval: 0.06 },
     levels: [],
     evolution: true

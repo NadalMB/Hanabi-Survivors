@@ -169,6 +169,7 @@ export class App {
     this.screen?.remove()
     this.screen = null
     this.backdrop.hide()
+    this.deps.input.releaseFocus()
     this.deps.input.clearPresses()
     this.session = session
     session.start()
