@@ -1,5 +1,8 @@
+import pkg from '../../package.json'
+
 export const GAME_TITLE = 'Hanabi Survivors'
-export const GAME_VERSION = '0.2.0'
+/** Same number as package.json, so the menu and the portable filename stay together. */
+export const GAME_VERSION = pkg.version
 
 /** Bumped whenever the network message format changes; mismatched peers are rejected. */
 export const PROTOCOL_VERSION = 9

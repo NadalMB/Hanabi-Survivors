@@ -1,12 +1,15 @@
 ---
-description: Rebuild the Windows installer and portable exe after every game change
+description: Rebuild the Windows installer and publish the portable after every game change
 alwaysApply: true
 ---
 
-# Rebuild installer after changes
+# Rebuild installer and publish the portable
 
-After any change that affects the shipped game (source, assets, styles, or packaging config), run `npm run dist` before finishing and wait until it succeeds.
+After any change that affects the shipped game (source, assets, styles, or packaging config), run `npm run publish:portable` before finishing and wait until it succeeds.
 
-- Output overwrites `release/<version>/` from `package.json`. Do not bump the version unless the user asks.
-- Tell the user the installer path (`HanabiSurvivors-Setup-<version>.exe`) and the portable exe (`HanabiSurvivors-Portable-<version>.exe`).
-- Skip the rebuild only for questions that do not change the game, or when this same change already produced a successful `npm run dist`.
+- Every git commit also raises the patch (`0.2.0` → `0.2.1`) through the pre-commit hook. The menu reads that same number from `package.json`, and the files are named `HanabiSurvivors-Setup-<version>.exe` and `HanabiSurvivors-Portable-<version>.exe`.
+- `publish:portable` bumps once before building and commits with `--no-verify`, so the hook does not bump a second time.
+- It builds into `release/<version>/` and uploads the portable to a GitHub release tagged `v<version>`.
+- Tell the user the release URL, the installer path, and the portable path.
+- If the build succeeded but the upload failed, rerun `npm run publish:portable -- --upload-only` so the version does not jump again.
+- Skip it only for questions that do not change the game, or when this same change already produced a successful publish.

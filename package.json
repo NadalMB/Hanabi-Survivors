@@ -1,7 +1,7 @@
 {
   "name": "hanabi-survivors",
   "productName": "Hanabi Survivors",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Anime-styled co-op survival roguelike.",
   "main": "./out/main/index.js",
   "author": "Nadal",
@@ -14,6 +14,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "build": "npm run typecheck && electron-vite build",
     "dist": "npm run build && electron-builder --win --x64",
+    "publish:portable": "node scripts/publish-portable.mjs",
     "dist:dir": "npm run build && electron-builder --win --x64 --dir"
   },
   "dependencies": {

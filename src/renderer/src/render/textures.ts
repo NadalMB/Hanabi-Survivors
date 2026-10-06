@@ -1,4 +1,4 @@
-import { CanvasSource, Texture } from 'pixi.js'
+import { CanvasSource, ImageSource, Texture } from 'pixi.js'
 import { CHARACTERS, type Accessory, type CharacterDef, type CharacterPalette } from '@/game/data/characters'
 import { COSMETICS, type CosmeticDef, type EffectKind, type OrnamentKind, type PetKind } from '@/game/data/cosmetics'
 import { ENEMIES } from '@/game/data/enemies'
@@ -105,7 +105,12 @@ function paint(w: number, h: number, draw: (ctx: Ctx) => void, res = RES): HTMLC
 }
 
 function toTexture(c: HTMLCanvasElement, resolution = RES): Texture {
-  return new Texture({ source: new CanvasSource({ resource: c, resolution }) })
+  // Build at resolution 1 first. Passing a fractional resolution up front makes Pixi
+  // resize the canvas to a non-integer size, which clears the pixels and the sprite
+  // uploads blank. The logical size is applied afterwards, without touching the bitmap.
+  const source = new CanvasSource({ resource: c, resolution: 1 })
+  source.resolution = resolution
+  return new Texture({ source })
 }
 
 function silhouette(src: HTMLCanvasElement, color: string): HTMLCanvasElement {
@@ -2428,23 +2433,16 @@ function drawEnemyBody(ctx: Ctx, key: string, s: number): void {
 
 // ---------------------------------------------------------------- projectiles & fx
 
-function charmFromImage(img: HTMLImageElement, logicalH: number): HTMLCanvasElement {
-  const canvasH = Math.round(logicalH * RES)
-  const canvasW = Math.max(1, Math.round((img.width * canvasH) / img.height))
-  const canvas = document.createElement('canvas')
-  canvas.width = canvasW
-  canvas.height = canvasH
-  const ctx = canvas.getContext('2d')!
-  ctx.imageSmoothingEnabled = true
-  ctx.imageSmoothingQuality = 'high'
-  ctx.drawImage(img, 0, 0, canvasW, canvasH)
-  return canvas
+/** The flying ofuda keeps the PNG itself. Copying it onto a canvas was uploading a blank texture. */
+function charmTexture(img: HTMLImageElement, logicalH: number): Texture {
+  const source = new ImageSource({ resource: img })
+  source.autoGarbageCollect = false
+  source.resolution = img.height / logicalH
+  return new Texture({ source })
 }
 
 function projectileCanvases(): HTMLCanvasElement[] {
   const ofuda = (gold: boolean): HTMLCanvasElement => {
-    const img = gold ? projectileCharms.seal : projectileCharms.talisman
-    if (img) return charmFromImage(img, 64)
     return withGlow(
       outlined(
         paint(22, 36, (ctx) => {
@@ -3937,7 +3935,10 @@ export function createTextures(
     enemies,
     enemiesWhite,
     enemyPortraits,
-    projectiles: projectileCanvases().map(toTexture),
+    projectiles: projectileCanvases().map((canvas, index) => {
+      const charm = index === 0 ? projectileCharms.talisman : index === 1 ? projectileCharms.seal : undefined
+      return charm ? charmTexture(charm, 78) : toTexture(canvas)
+    }),
     gems: [0, 1, 2, 3, 4].map((tier) => toTexture(gemDiamondCanvas(tier))),
     heal: toTexture(
       withGlow(
