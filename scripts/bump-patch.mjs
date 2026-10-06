@@ -6,12 +6,9 @@ const pkgPath = resolve(root, 'package.json')
 const lockPath = resolve(root, 'package-lock.json')
 
 function bump(version) {
-  const parts = version.split('.').map((n) => Number(n))
-  if (parts.length !== 3 || parts.some((n) => !Number.isInteger(n) || n < 0)) {
-    throw new Error(`Versión no válida: ${version}`)
-  }
-  parts[2] += 1
-  return parts.join('.')
+  const match = /^(\d+)\.(\d+)\.(\d+)-alpha$/.exec(version)
+  if (!match) throw new Error(`Versión no válida: ${version}`)
+  return `${match[1]}.${match[2]}.${Number(match[3]) + 1}-alpha`
 }
 
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
@@ -20,7 +17,7 @@ pkg.version = next
 writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`)
 
 let seen = 0
-const lock = readFileSync(lockPath, 'utf8').replace(/"version": "\d+\.\d+\.\d+"/g, (match) => {
+const lock = readFileSync(lockPath, 'utf8').replace(/"version": "\d+\.\d+\.\d+-alpha"/g, (match) => {
   seen += 1
   return seen <= 2 ? `"version": "${next}"` : match
 })

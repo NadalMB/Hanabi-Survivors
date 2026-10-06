@@ -17,12 +17,9 @@ function writePkg(pkg) {
 }
 
 function bumpPatch(version) {
-  const parts = version.split('.').map((n) => Number(n))
-  if (parts.length !== 3 || parts.some((n) => !Number.isInteger(n))) {
-    throw new Error(`Versión no válida: ${version}`)
-  }
-  parts[2] += 1
-  return parts.join('.')
+  const match = /^(\d+)\.(\d+)\.(\d+)-alpha$/.exec(version)
+  if (!match) throw new Error(`Versión no válida: ${version}`)
+  return `${match[1]}.${match[2]}.${Number(match[3]) + 1}-alpha`
 }
 
 function githubToken() {
@@ -87,15 +84,15 @@ if (!uploadOnly) {
   if (pushed.status !== 0) process.exit(pushed.status ?? 1)
 }
 
-const exeName = `HanabiSurvivors-Portable-${version}.exe`
-const exe = resolve(root, 'release', version, exeName)
+const exeName = 'HanabiSurvivors-Portable.exe'
+const exe = resolve(root, 'release', exeName)
 const token = githubToken()
 if (!token) {
-  console.error(`No hay acceso a GitHub. El portable está en release/${version}/${exeName}`)
+  console.error(`No hay acceso a GitHub. El portable está en release/${exeName}`)
   process.exit(1)
 }
 
-const branch = spawnSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim()
+const branch = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim()
 let release
 try {
   release = await github(token, `https://api.github.com/repos/${repo}/releases`, {

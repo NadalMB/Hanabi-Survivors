@@ -4,7 +4,7 @@ copyright: Copyright © 2026 Nadal
 
 directories:
   buildResources: build
-  output: release/${version}
+  output: release
 
 files:
   - out/**/*
@@ -34,7 +34,7 @@ nsis:
   uninstallDisplayName: Hanabi Survivors
   deleteAppDataOnUninstall: false
   runAfterFinish: true
-  artifactName: HanabiSurvivors-Setup-${version}.${ext}
+  artifactName: HanabiSurvivors-Setup.${ext}
 
 portable:
-  artifactName: HanabiSurvivors-Portable-${version}.${ext}
+  artifactName: HanabiSurvivors-Portable.${ext}
