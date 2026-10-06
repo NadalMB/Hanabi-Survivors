@@ -7,8 +7,9 @@ alwaysApply: true
 
 After any change that affects the shipped game (source, assets, styles, or packaging config), run `npm run dist` before finishing and wait until it succeeds.
 
-- Do not upload anything to GitHub. Do not create releases, and do not push.
-- Do not change the version yourself. It stays `0.0.0-alpha` until the user makes a git commit. The pre-commit hook then raises the patch and keeps the `-alpha` suffix (`0.0.0-alpha` → `0.0.1-alpha`). The menu reads that same string from `package.json`.
-- The executables keep a fixed path: `release/HanabiSurvivors-Setup.exe` and `release/HanabiSurvivors-Portable.exe`. The version number is only written to `release/version`, so a shortcut to the exe does not break when the version changes.
+- Work only on `main`. Do not create a branch. Commit and push directly to `main`.
+- Do not upload a release yourself. When a commit is created on `main`, the post-commit hook pushes `main` and uploads `HanabiSurvivors-Portable-<version>.exe` and `HanabiSurvivors-Setup-<version>.exe` to the GitHub release `v<version>`.
+- Do not change the version yourself. The pre-commit hook raises the patch and keeps the `-alpha` suffix (`0.0.0-alpha` → `0.0.1-alpha`) only when a commit is created. The menu reads that string from `package.json`.
+- The local executables keep a fixed path: `release/HanabiSurvivors-Setup.exe` and `release/HanabiSurvivors-Portable.exe`. The version number is only written to `release/version`, so a shortcut to the exe does not break when the version changes.
 - Tell the user the installer path and the portable path.
 - Skip the rebuild only for questions that do not change the game, or when this same change already produced a successful `npm run dist`.
