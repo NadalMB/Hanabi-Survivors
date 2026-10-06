@@ -127,7 +127,7 @@ export abstract class SessionBase {
     const world = this.world
     for (const ev of world.events) {
       if (ev.e === 'discover' && ev.playerId === this.localId) this.unlockWeapon(ev.weaponId)
-      else if (ev.e === 'chest' && ev.playerId === this.localId) this.hud.banner('¡PRESTIGIO!', ev.lines, 'chest')
+      else if (ev.e === 'chest' && ev.playerId === this.localId) this.hud.banner('PRESTIGIO', ev.lines, 'chest', true)
       else if (ev.e === 'evolution') {
         const who = ev.playerId === this.localId ? '' : `${world.playerById(ev.playerId)?.name ?? ''}: `
         this.hud.banner('¡EVOLUCIÓN!', [who + WEAPONS[ev.weaponId].name], 'evolution')

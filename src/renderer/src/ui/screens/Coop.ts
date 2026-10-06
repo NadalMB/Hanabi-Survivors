@@ -7,7 +7,7 @@ import { hostOnline, joinOnline, makeInviteCode, normalizeCode } from '@/net/pee
 import type { ClientTransport } from '@/net/transport'
 import type { FriendEntry } from '@shared/save'
 import { el } from '../dom'
-import { resolveStarter } from '@/game/data/characters'
+import { CHARACTERS } from '@/game/data/characters'
 import { loadoutFromSave } from '@/game/data/cosmetics'
 import { isUnlocked } from './CharacterSelect'
 import { screenFrame, statusLine } from './common'
@@ -21,7 +21,7 @@ export function coopMenu(app: App, initialError = ''): HTMLElement {
   const characterId = (): string => (isUnlocked(app, save.lastCharacter) ? save.lastCharacter : 'sakura')
   const hostInfo = () => {
     const id = characterId()
-    return { name: save.settings.playerName, characterId: id, weaponId: resolveStarter(id, save.starterWeapons[id]), cosmetics: loadoutFromSave(save) }
+    return { name: save.settings.playerName, characterId: id, weaponId: CHARACTERS[id].weapon, cosmetics: loadoutFromSave(save) }
   }
 
   const run = async (label: string, task: () => Promise<void>): Promise<void> => {

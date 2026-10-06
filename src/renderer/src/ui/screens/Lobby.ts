@@ -1,7 +1,8 @@
 import { MAX_PLAYERS } from '@shared/constants'
 import type { LobbyPlayer } from '@shared/protocol'
 import type { App } from '@/App'
-import { CHARACTER_ORDER, CHARACTERS, resolveStarter, starterPair } from '@/game/data/characters'
+import { CHARACTER_ORDER, CHARACTERS, resolveStarter } from '@/game/data/characters'
+import { describeMods } from '@/game/data/stats'
 import { WEAPONS } from '@/game/data/weapons'
 import type { ClientNet } from '@/net/ClientNet'
 import type { HostNet } from '@/net/HostNet'
@@ -79,40 +80,34 @@ function lobbyView(app: App, invite: Invite | null, onPick: (characterId: string
     img.src = portraitFor(app, id)
     img.draggable = false
     b.append(img)
-    b.title = `${CHARACTERS[id].name} · ${WEAPONS[CHARACTERS[id].weapon].name}`
+    b.title = CHARACTERS[id].name
     b.addEventListener('click', () => {
       pickRow.querySelectorAll('.picker-char').forEach((n) => n.classList.remove('selected'))
       b.classList.add('selected')
       app.save.lastCharacter = id
       void app.persist()
       app.sfx.ui()
-      paintWeapons(id)
-      onPick(id, resolveStarter(id, app.save.starterWeapons[id]))
+      paintHero(id)
+      onPick(id, CHARACTERS[id].weapon)
     })
     pickRow.append(b)
   }
   picker.append(pickRow)
-  const weapons = el('div', 'starter-row lobby-weapons')
-  const paintWeapons = (characterId: string): void => {
-    weapons.replaceChildren()
-    const chosen = resolveStarter(characterId, app.save.starterWeapons[characterId])
-    for (const id of starterPair(characterId)) {
-      const def = WEAPONS[id]
-      const b = el('button', `starter-card compact${id === chosen ? ' on' : ''}`)
-      b.append(iconImg(def.icon, 'weapon', 'starter-icon'), el('span', '', def.name))
-      b.addEventListener('click', () => {
-        app.save.lastCharacter = characterId
-        app.save.starterWeapons[characterId] = id
-        void app.persist()
-        app.sfx.ui()
-        paintWeapons(characterId)
-        onPick(characterId, id)
-      })
-      weapons.append(b)
-    }
+  const hero = el('div', 'lobby-hero')
+  const paintHero = (characterId: string): void => {
+    const def = CHARACTERS[characterId] ?? CHARACTERS.sakura
+    const weapon = WEAPONS[def.weapon]
+    hero.replaceChildren(
+      el('div', 'detail-title', def.title),
+      el('div', 'detail-name', def.name),
+      el('p', 'detail-desc', def.description),
+      el('div', 'detail-bonus', `Bonificación: ${describeMods(def.mods)}`),
+      el('div', 'lobby-start', `Empieza con ${weapon?.name ?? def.weapon}.`)
+    )
+    hero.style.setProperty('--accent', def.palette.accent)
   }
-  paintWeapons(isUnlocked(app, app.save.lastCharacter) ? app.save.lastCharacter : 'sakura')
-  picker.append(el('div', 'picker-label', 'Arma común'), weapons)
+  paintHero(isUnlocked(app, app.save.lastCharacter) ? app.save.lastCharacter : 'sakura')
+  picker.append(hero)
   side.append(picker)
 
   const slots = el('div', 'lobby-slots')
@@ -136,7 +131,7 @@ function lobbyView(app: App, invite: Invite | null, onPick: (characterId: string
           continue
         }
         const def = CHARACTERS[p.characterId] ?? CHARACTERS.sakura
-        const weaponDef = WEAPONS[resolveStarter(def.id, p.weaponId)]
+        const weaponDef = WEAPONS[def.weapon] ?? WEAPONS[resolveStarter(def.id, p.weaponId)]
         const slot = el('div', `player-slot${p.id === localId ? ' me' : ''}${p.ready ? ' ready' : ''}`)
         slot.style.setProperty('--accent', def.palette.accent)
         const img = el('img', 'slot-portrait') as HTMLImageElement
@@ -191,8 +186,8 @@ export function hostLobby(app: App, net: HostNet, invite: Invite): HTMLElement {
 
 export function clientLobby(app: App, net: ClientNet): HTMLElement {
   let ready = false
-  let characterId = app.save.lastCharacter
-  let weaponId = resolveStarter(characterId, app.save.starterWeapons[characterId])
+  let characterId = isUnlocked(app, app.save.lastCharacter) ? app.save.lastCharacter : 'sakura'
+  let weaponId = CHARACTERS[characterId].weapon
   const leave = (): void => {
     net.close()
     app.coopMenu()

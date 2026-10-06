@@ -1315,6 +1315,28 @@
   font: 400 16px/1 var(--font-display);
 }
 
+.lobby-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lobby-hero .detail-name {
+  font-size: 32px;
+}
+
+.lobby-hero .detail-desc {
+  font-size: 16px;
+}
+
+.lobby-start {
+  font: 700 15px/1.4 var(--font-body);
+  color: var(--gold);
+}
+
 .picker-row {
   display: flex;
   flex-wrap: wrap;

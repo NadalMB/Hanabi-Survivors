@@ -150,6 +150,7 @@ export class LevelUpOverlay {
       chestBox = el('div', 'chest-reveal shut')
       chestBox.append(el('div', 'chest-lid'), el('div', 'chest-body'))
       nodes.unshift(chestBox)
+      if (choices.some((choice) => choice.kind === 'prestige')) nodes.push(el('div', 'prestige-burst', 'PRESTIGIO'))
     }
     const hint = this.chest ? '1 o la nueva para aceptarla · 2 o la actual para rechazarla' : `Pulsa 1–${choices.length} o haz clic · 0 para rechazar`
     const foot = el('div', 'levelup-hint', hint)
@@ -253,7 +254,9 @@ export class LevelUpOverlay {
         card.style.animationDuration = `${flip}ms`
       })
       this.later(revealAt, () => {
-        card.classList.remove('sealed')
+        card.classList.remove('sealed', 'flipping')
+        card.style.animation = 'none'
+        card.style.transform = ''
         card.classList.add('revealed', rarity)
         this.root.classList.remove('rarity-rare', 'rarity-epic', 'rarity-legendary')
         if (rarity !== 'common') this.root.classList.add(`rarity-${rarity}`)

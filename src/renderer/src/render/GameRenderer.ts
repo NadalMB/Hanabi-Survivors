@@ -22,7 +22,7 @@ import { SpritePool } from './SpritePool'
 import { PLAYER_ANCHOR_Y, type GameTextures } from './textures'
 
 const PROP_CHUNK = 360
-const CULL_MARGIN = 90
+const CULL_MARGIN = 220
 const FIREWORK_COLORS = [0xff5fa2, 0x5ff2ff, 0xffd166, 0xb38cff, 0x7dff9a, 0xff8a3b]
 
 function hash2(x: number, y: number, salt: number): number {
@@ -366,8 +366,8 @@ export class GameRenderer {
     for (let i = 0; i < e.count; i++) {
       const x = e.prevX[i] + (e.x[i] - e.prevX[i]) * alpha
       const y = e.prevY[i] + (e.y[i] - e.prevY[i]) * alpha
-      if (!this.visible(x, y)) continue
       const type = e.type[i]
+      if (!ENEMIES[type]?.boss && !this.visible(x, y)) continue
       if (e.alive[i] && !this.spotted.has(type)) {
         this.spotted.add(type)
         this.pendingSpot.push(type)
@@ -571,6 +571,7 @@ export class GameRenderer {
           this.shadow(f.x, f.y + 16, 20)
           const s = this.pets.next(this.tex.pets[def.pet])
           s.position.set(f.x, f.y + hop)
+          s.rotation = 0
           s.scale.set((f.face || 1) * 1.08, 1.08)
           s.alpha = 1
           s.tint = 0xffffff
@@ -636,11 +637,12 @@ export class GameRenderer {
       const s = this.projectiles.next(skinned ?? t.projectiles[v])
       s.position.set(x, y)
       const hitScale = pr.radius[i] / (VISUAL_BASE_RADIUS[v] || 1)
-      const scale = hitScale * 2 * (glow ? 1.22 : 1)
+      const ofuda = v === ProjVisual.Talisman || v === ProjVisual.Seal
+      const scale = hitScale * (ofuda ? 2.4 : 2) * (glow ? 1.22 : 1)
       s.scale.set(scale)
       const fallback = v === ProjVisual.Fuuma ? 0xc9a8ff : 0xffffff
       const tint = this.projectileTint(world, pr.owner[i], v, fallback)
-      s.tint = glow && !skinned ? 0xffe7a0 : tint
+      s.tint = ofuda ? 0xffffff : glow && !skinned ? 0xffe7a0 : tint
       const aim = Math.atan2(pr.vy[i], pr.vx[i])
       const pointsUp =
         v === ProjVisual.Foxfire ||
@@ -649,8 +651,8 @@ export class GameRenderer {
         v === ProjVisual.Seal ||
         (skinned && (v === ProjVisual.Kunai || v === ProjVisual.Rocket))
       s.rotation = aim + (pointsUp ? Math.PI / 2 : 0)
-      if (v === ProjVisual.Foxfire || v === ProjVisual.SpiritFlame || glow) s.scale.set(scale * (1 + Math.sin(this.time * 14 + i) * 0.08))
-      s.alpha = hitScale <= 1.45 ? 1 : Math.max(0.32, 1 - (hitScale - 1.45) * 0.26)
+      if (!ofuda && (v === ProjVisual.Foxfire || v === ProjVisual.SpiritFlame || glow)) s.scale.set(scale * (1 + Math.sin(this.time * 14 + i) * 0.08))
+      s.alpha = ofuda ? 1 : hitScale <= 1.45 ? 1 : Math.max(0.32, 1 - (hitScale - 1.45) * 0.26)
       const speed = Math.hypot(pr.vx[i], pr.vy[i])
       if (speed > 30 && (v === ProjVisual.Shuriken || v === ProjVisual.Fuuma || v === ProjVisual.Kunai || v === ProjVisual.Rocket) && Math.random() < 0.45) {
         this.particles.emit(t.spark, x - (pr.vx[i] / speed) * 10, y - (pr.vy[i] / speed) * 10, {

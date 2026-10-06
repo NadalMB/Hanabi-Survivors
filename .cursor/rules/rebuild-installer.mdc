@@ -7,7 +7,8 @@ alwaysApply: true
 
 After any change that affects the shipped game (source, assets, styles, or packaging config), run `npm run publish:portable` before finishing and wait until it succeeds.
 
-- That script raises the patch version in `package.json` (`0.2.0` → `0.2.1`). The menu reads that same number, and the files are named `HanabiSurvivors-Setup-<version>.exe` and `HanabiSurvivors-Portable-<version>.exe`.
+- Every git commit also raises the patch (`0.2.0` → `0.2.1`) through the pre-commit hook. The menu reads that same number from `package.json`, and the files are named `HanabiSurvivors-Setup-<version>.exe` and `HanabiSurvivors-Portable-<version>.exe`.
+- `publish:portable` bumps once before building and commits with `--no-verify`, so the hook does not bump a second time.
 - It builds into `release/<version>/` and uploads the portable to a GitHub release tagged `v<version>`.
 - Tell the user the release URL, the installer path, and the portable path.
 - If the build succeeded but the upload failed, rerun `npm run publish:portable -- --upload-only` so the version does not jump again.

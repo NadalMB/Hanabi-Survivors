@@ -162,12 +162,13 @@ export class Hud {
     }
   }
 
-  banner(title: string, lines: string[] = [], tone: BannerTone = 'info'): void {
-    const node = el('div', `banner ${tone}`)
+  banner(title: string, lines: string[] = [], tone: BannerTone = 'info', burst = false): void {
+    const node = el('div', `banner ${tone}${burst ? ' burst' : ''}`)
     node.append(el('div', 'banner-title', title))
     for (const line of lines) node.append(el('div', 'banner-line', line))
     this.banners.append(node)
-    setTimeout(() => node.classList.add('leaving'), 2600)
-    setTimeout(() => node.remove(), 3200)
+    const hold = burst ? 700 : 2600
+    setTimeout(() => node.classList.add('leaving'), hold)
+    setTimeout(() => node.remove(), hold + (burst ? 280 : 600))
   }
 }

@@ -220,6 +220,18 @@ function offerRarity(id: string): ChestRarity {
   return 'common'
 }
 
+/** Evolutions sit above every chest form, so a chest cannot trade one back down. */
+function offerRank(id: string): number {
+  if (WEAPONS[id]?.evolution) return CHEST_RARITIES.length
+  return CHEST_RARITIES.indexOf(offerRarity(id))
+}
+
+/** Forms of this weapon that outrank the one already equipped. */
+function betterOffers(slotId: string): { id: string; rarity: ChestRarity }[] {
+  const floor = offerRank(slotId)
+  return familyOffers(weaponFamily(slotId)).filter((offer) => CHEST_RARITIES.indexOf(offer.rarity) > floor)
+}
+
 /** Base weapon plus prestige forms. Evolutions stay out of this list. */
 function familyOffers(family: string): { id: string; rarity: ChestRarity }[] {
   const offers: { id: string; rarity: ChestRarity }[] = []
@@ -248,12 +260,15 @@ function chestWeapon(world: World, p: Player, blocked: Set<string>): UpgradeChoi
   }
   const owned = new Set(p.weapons.map((slot) => slot.id))
   const spare = Object.values(WEAPONS).filter((def) => !def.evolution && !owned.has(def.id) && !blocked.has(def.id))
-  const slot = p.weapons[world.rng.int(p.weapons.length)]
-  if (spare.length > 0 && slot) {
-    const def = spare[world.rng.int(spare.length)]
-    blocked.add(def.id)
-    return { kind: 'prestige', id: slot.id, into: def.id, level: slot.level, rarity: offerRarity(def.id) }
+  const upgrades = p.weapons.flatMap((slot) =>
+    spare.filter((def) => offerRank(def.id) > offerRank(slot.id)).map((def) => ({ slot, def }))
+  )
+  if (upgrades.length > 0) {
+    const pick = upgrades[world.rng.int(upgrades.length)]
+    blocked.add(pick.def.id)
+    return { kind: 'prestige', id: pick.slot.id, into: pick.def.id, level: pick.slot.level, rarity: offerRarity(pick.def.id) }
   }
+  const slot = p.weapons[world.rng.int(p.weapons.length)]
   return { kind: 'weapon', id: slot?.id ?? 'katana', level: (slot?.level ?? 1) + 1, rarity: 'common' }
 }
 
@@ -269,29 +284,30 @@ function blockChoice(blocked: Set<string>, choice: UpgradeChoice): void {
 function rollPrestige(world: World, p: Player, blocked: Set<string>): UpgradeChoice {
   const owned = new Set(p.weapons.map((slot) => slot.id))
   const free = (id: string): boolean => !owned.has(id) && !blocked.has(id)
-  const slots = p.weapons.filter((slot) => familyOffers(weaponFamily(slot.id)).some((offer) => free(offer.id)))
+  const slots = p.weapons.filter((slot) => betterOffers(slot.id).some((offer) => free(offer.id)))
   if (slots.length === 0) return chestWeapon(world, p, blocked)
   const fresh = slots.filter((slot) => ![...blocked].some((id) => weaponFamily(id) === weaponFamily(slot.id)))
   const pool = fresh.length > 0 ? fresh : slots
   const slot = pool[world.rng.int(pool.length)]
   const family = weaponFamily(slot.id)
-  const open = familyOffers(family).filter((offer) => free(offer.id))
+  const open = betterOffers(slot.id).filter((offer) => free(offer.id))
   if (open.length === 0) return chestWeapon(world, p, blocked)
+  const floor = offerRank(slot.id) + 1
   const rarity = rollChestRarity(world, p.stats.luck)
-  if (rarity === 'legendary') {
+  const rank = Math.max(CHEST_RARITIES.indexOf(rarity), floor)
+  if (rank >= CHEST_RARITIES.indexOf('legendary')) {
     const evo = readyEvolution(p)
     const into = evo ? WEAPONS[evo.id]?.evolvesInto : undefined
-    if (evo && into && weaponFamily(evo.id) === family && free(into)) {
+    if (evo && into && weaponFamily(evo.id) === family && free(into) && offerRank(into) > offerRank(slot.id)) {
       return { kind: 'evolution', id: evo.id, level: 1, rarity: 'legendary' }
     }
   }
-  const rank = CHEST_RARITIES.indexOf(rarity)
-  const exact = open.find((offer) => offer.rarity === rarity)
-  const lower = open
+  const exact = open.find((offer) => CHEST_RARITIES.indexOf(offer.rarity) === rank)
+  const withinRoll = open
     .filter((offer) => CHEST_RARITIES.indexOf(offer.rarity) <= rank)
     .sort((a, b) => CHEST_RARITIES.indexOf(b.rarity) - CHEST_RARITIES.indexOf(a.rarity))[0]
-  const form = exact ?? lower
-  if (!form) return chestWeapon(world, p, blocked)
+  const form = exact ?? withinRoll ?? open.slice().sort((a, b) => CHEST_RARITIES.indexOf(a.rarity) - CHEST_RARITIES.indexOf(b.rarity))[0]
+  if (!form || offerRank(form.id) <= offerRank(slot.id)) return chestWeapon(world, p, blocked)
   return { kind: 'prestige', id: slot.id, into: form.id, level: slot.level, rarity: form.rarity }
 }
 
