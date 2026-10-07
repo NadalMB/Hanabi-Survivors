@@ -41,14 +41,10 @@
   background: transparent;
 }
 
-/* Conventional arrow / hand cursors, pink and oversized for visibility. */
+/* Custom pink cursors (arrow default, hand on clickable UI). */
 :root {
-  --cursor-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cpath fill='%23fff5fa' d='M6 2.2 6 36.5 13.8 28.4 19.6 42.4 26.2 39.6 20.4 25.6 32.2 25.6Z'/%3E%3Cpath fill='%23ff5fa2' d='M8.2 6.4 8.2 31.6 14.6 25.1 20 38.2 23.8 36.6 18.4 23.5 28.6 23.5Z'/%3E%3C/svg%3E")
-    6 3,
-    auto;
-  --cursor-hand: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='56' viewBox='0 0 52 56'%3E%3Cpath fill='%23fff5fa' d='M18.2 2.2c-3.1 0-5.6 2.5-5.6 5.6v18.8c-.6-.7-1.6-1.2-2.8-1.2-2.4 0-4.3 1.9-4.3 4.3v9.2c0 7.7 5.4 14 13.4 14h5.4c7.4 0 13.4-6 13.4-13.4V27.6c0-2.4-1.9-4.3-4.3-4.3-.9 0-1.7.3-2.4.7V15.4c0-2.9-2.3-5.2-5.2-5.2-1.2 0-2.3.4-3.2 1.1V7.8c0-3.1-2.5-5.6-5.6-5.6z'/%3E%3Cpath fill='%23ff5fa2' d='M18.2 4.6c-1.8 0-3.2 1.4-3.2 3.2v20.2h-2.4c-1.1 0-2 .9-2 2v8.8c0 6.1 4.2 11.1 10.7 11.1h5c5.9 0 10.7-4.8 10.7-10.7V27.8c0-.8-.6-1.4-1.4-1.4s-1.4.6-1.4 1.4v3.2h-2.8V16.2c0-1.4-1.1-2.5-2.5-2.5s-2.5 1.1-2.5 2.5v7.4h-2.8V7.8c0-1.8-1.4-3.2-3.2-3.2z'/%3E%3C/svg%3E")
-    15 4,
-    pointer;
+  --cursor-arrow: url('../assets/cursors/cursor-arrow.png') 5 0, auto;
+  --cursor-hand: url('../assets/cursors/cursor-hand.png') 16 0, pointer;
 }
 
 html,
