@@ -6,7 +6,7 @@ import { Sfx } from './audio/Sfx'
 import { Input } from './core/Input'
 import { enableDragScroll } from './ui/dragScroll'
 import { loadIconArt } from './render/icons'
-import { createTextures, loadBossImages, loadCastImages, loadPetImages } from './render/textures'
+import { createTextures, loadAvatarImages, loadBossImages, loadCastImages, loadPetImages } from './render/textures'
 import './styles/fonts.css'
 import './styles/main.css'
 import './styles/ui.css'
@@ -37,9 +37,15 @@ async function boot(): Promise<void> {
   await Promise.all([document.fonts.load('48px "Dela Gothic One"'), document.fonts.load('700 16px "M PLUS Rounded 1c"')]).catch(() => undefined)
 
   const save = hydrateSave(window.api ? await window.api.loadSave() : null)
-  const [cast, bosses, petArt] = await Promise.all([loadCastImages(), loadBossImages(), loadPetImages(), loadIconArt()])
+  const [cast, bosses, petArt, avatarArt] = await Promise.all([
+    loadCastImages(),
+    loadBossImages(),
+    loadPetImages(),
+    loadAvatarImages(),
+    loadIconArt()
+  ])
   const sfx = new Sfx(save.settings)
-  const game = new App({ app, textures: createTextures(cast, bosses, petArt), sfx, input: new Input(), save, debug: import.meta.env.DEV })
+  const game = new App({ app, textures: createTextures(cast, bosses, petArt, avatarArt), sfx, input: new Input(), save, debug: import.meta.env.DEV })
   if (save.settings.fullscreen) void window.api?.setFullscreen(true)
 
   const params = new URLSearchParams(location.search)

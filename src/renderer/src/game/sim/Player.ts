@@ -56,6 +56,8 @@ export class Player {
   offer: 'level' | 'chest' | null = null
   /** Chests collected while another choice was already on screen. */
   pendingChests = 0
+  /** World positions of pending personal chests (same order as pendingChests). */
+  readonly pendingChestPos: { x: number; y: number }[] = []
   /** This player still has to open their half of a shared co-op chest. */
   awaitingChest = false
   kills = 0
@@ -94,6 +96,7 @@ export class Player {
     this.choices = null
     this.offer = null
     this.pendingChests = 0
+    this.pendingChestPos.length = 0
     this.awaitingChest = false
     this.chill = 0
     this.recomputeStats()

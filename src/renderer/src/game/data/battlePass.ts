@@ -3,8 +3,11 @@ import type { SaveData } from '@shared/save'
 import { COSMETICS, grantCosmetic } from './cosmetics'
 
 export const PASS_NAME = 'Festival de las Linternas'
-export const PASS_PREMIUM_COST = 10000
+export const PASS_PREMIUM_COST = 12500
 export const PASS_LEVELS = 100
+/** Free-track index that grants the festival profile icon (needs pass level 10). */
+export const PASS_AVATAR_LEVEL = 10
+export const PASS_AVATAR_ID = 'avatar_festival'
 
 /** XP required to leave `level` (0-based). Later tiers cost much more than the first. */
 export function xpRequiredForNext(level: number): number {
@@ -15,11 +18,17 @@ export type PassReward = { type: 'gold'; amount: number } | { type: 'cosmetic'; 
 
 export interface PassTier {
   free?: PassReward
-  premium: PassReward
+  premium?: PassReward
 }
 
-/** Rewards stay empty until the season is ready. Levels still advance. */
-export const PASS_TRACK: readonly PassTier[] = []
+function emptyTier(): PassTier {
+  return {}
+}
+
+/** Only the free level-10 profile icon for now. Premium track stays empty. */
+export const PASS_TRACK: readonly PassTier[] = Array.from({ length: PASS_AVATAR_LEVEL }, (_, index) =>
+  index === PASS_AVATAR_LEVEL - 1 ? { free: { type: 'cosmetic', id: PASS_AVATAR_ID } } : emptyTier()
+)
 
 export function passLevel(xp: number): number {
   let level = 0
@@ -99,7 +108,7 @@ export function claimAllPassRewards(save: SaveData): number {
   let n = 0
   for (let i = 0; i < PASS_TRACK.length; i++) {
     if (PASS_TRACK[i].free && claimPassReward(save, i, 'free')) n++
-    if (claimPassReward(save, i, 'premium')) n++
+    if (PASS_TRACK[i].premium && claimPassReward(save, i, 'premium')) n++
   }
   return n
 }

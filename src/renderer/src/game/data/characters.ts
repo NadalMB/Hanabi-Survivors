@@ -66,7 +66,7 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     accessories: ['ribbon'],
     prop: 'gohei',
     longHair: true,
-    unlockCost: 500
+    unlockCost: 650
   },
   kaede: {
     id: 'kaede',
@@ -79,7 +79,7 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     accessories: ['headband', 'ponytail'],
     prop: 'scarf',
     longHair: false,
-    unlockCost: 800
+    unlockCost: 1050
   },
   yuki: {
     id: 'yuki',
@@ -92,7 +92,7 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     accessories: ['fox-ears'],
     prop: 'fox-tail',
     longHair: true,
-    unlockCost: 1200
+    unlockCost: 1550
   },
   hikari: {
     id: 'hikari',
@@ -105,7 +105,7 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     accessories: ['twin-tails'],
     prop: 'drums',
     longHair: false,
-    unlockCost: 1600
+    unlockCost: 2100
   },
   akane: {
     id: 'akane',
@@ -118,7 +118,7 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     accessories: ['ponytail'],
     prop: 'rocket',
     longHair: false,
-    unlockCost: 2000
+    unlockCost: 2600
   }
 }
 

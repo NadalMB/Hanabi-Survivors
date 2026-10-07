@@ -15,7 +15,7 @@ import { settingsPanel } from '@/ui/screens/Settings'
 import { accountLevel, accountXpForRun } from '@shared/account'
 import { battlePassXpForRun, battlePassXpSoFar, grantBattlePassXp, passLevel } from '../data/battlePass'
 import { ENEMIES } from '../data/enemies'
-import { WEAPONS } from '../data/weapons'
+import { weaponIconFrame, WEAPONS } from '../data/weapons'
 import type { World } from '../sim/World'
 
 export interface SessionDeps {
@@ -87,6 +87,7 @@ export abstract class SessionBase {
   protected abstract finaleActions(): MenuAction[] | null
 
   start(): void {
+    this.hud.setPractice(this.world.practice)
     this.loop.start()
   }
 
@@ -130,6 +131,12 @@ export abstract class SessionBase {
       else if (ev.e === 'evolution') {
         const who = ev.playerId === this.localId ? '' : `${world.playerById(ev.playerId)?.name ?? ''}: `
         this.hud.banner('¡EVOLUCIÓN!', [who + WEAPONS[ev.weaponId].name], 'evolution')
+      } else if (ev.e === 'chest-level' && ev.playerId === this.localId) {
+        const def = WEAPONS[ev.weaponId]
+        if (def) {
+          this.hud.chestLevel(def.icon, weaponIconFrame(def), def.name, ev.steps)
+          this.deps.sfx.chest()
+        }
       } else if (ev.e === 'boss') this.hud.banner(ev.mini ? '¡MINIJEFE!' : '¡SE ACERCA UN JEFE!', [ENEMIES[ev.enemyType].name], 'boss')
       else if (ev.e === 'endless') this.hud.banner('MODO INFINITO', ['La horda no va a parar.'], 'boss')
       else if (ev.e === 'portal') this.hud.banner('PORTAL', ['Entra para el siguiente mundo, o quédate. La horda crecerá cada vez más rápido.'], 'chest')
@@ -152,20 +159,27 @@ export abstract class SessionBase {
     this.onEventsConsumed()
 
     this.renderer.render(world, this.interpolation(alpha), frameSeconds, this.localId)
-    this.noteSeenEnemies()
-    this.noteLoadoutDiscoveries()
+    if (!world.practice) {
+      this.noteSeenEnemies()
+      this.noteLoadoutDiscoveries()
+    }
     this.hud.setWaiting(world.state === 'levelup' && !this.levelUp.visible && !this.ended)
     this.hud.update(world, this.local, frameSeconds)
     this.bankClock += frameSeconds
-    if (!this.ended && !this.runNoted && this.bankClock >= 12) {
+    if (!this.ended && !this.runNoted && !world.practice && this.bankClock >= 12) {
       this.bankClock = 0
       this.flushProgress(this.liveInfo(), false)
     }
-    this.pause.setRunPass(this.deps.save.battlePass.xp - this.creditedXp, battlePassXpSoFar(world.timeBank + world.time, this.local.kills))
-    this.pause.setRunProfile(
-      this.deps.save.accountXp - this.creditedAccountXp,
-      accountXpForRun(world.timeBank + world.time, this.local.kills, world.bossesDefeated)
-    )
+    if (world.practice) {
+      this.pause.setRunPass(0, 0)
+      this.pause.setRunProfile(0, 0)
+    } else {
+      this.pause.setRunPass(this.deps.save.battlePass.xp - this.creditedXp, battlePassXpSoFar(world.timeBank + world.time, this.local.kills))
+      this.pause.setRunProfile(
+        this.deps.save.accountXp - this.creditedAccountXp,
+        accountXpForRun(world.timeBank + world.time, this.local.kills, world.bossesDefeated)
+      )
+    }
     this.presentFinale()
   }
 

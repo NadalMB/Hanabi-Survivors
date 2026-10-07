@@ -29,6 +29,7 @@ import kappaArt from '../assets/enemies/kappa.png'
 import nueArt from '../assets/enemies/nue.png'
 import shikigamiArt from '../assets/pets/shikigami.png'
 import chestArt from '../assets/pickups/chest.png'
+import avatarFestivalArt from '../assets/avatars/avatar_festival.jpg'
 
 /** Textures are painted at 2x and exposed at logical size, so they stay crisp when zoomed. */
 const RES = 2
@@ -3738,6 +3739,15 @@ export function loadPetImages(): Promise<Record<string, HTMLImageElement>> {
   return loadImages(PET_URLS)
 }
 
+const AVATAR_URLS: Record<string, string> = {
+  avatar_festival: avatarFestivalArt
+}
+
+/** Profile icons unlocked from the battle pass and similar rewards. */
+export function loadAvatarImages(): Promise<Record<string, HTMLImageElement>> {
+  return loadImages(AVATAR_URLS)
+}
+
 /** On-screen height of a painted heroine, in world pixels. A little taller than the previous cut. */
 const CAST_LOGICAL_H = 82
 
@@ -3783,7 +3793,8 @@ function castPortrait(img: HTMLImageElement): string {
 export function createTextures(
   cast: Record<string, HTMLImageElement> = {},
   bosses: Record<string, HTMLImageElement> = {},
-  petsArt: Record<string, HTMLImageElement> = {}
+  petsArt: Record<string, HTMLImageElement> = {},
+  avatarArt: Record<string, HTMLImageElement> = {}
 ): GameTextures {
   const players: Record<string, Texture> = {}
   const portraits: Record<string, string> = {}
@@ -3919,11 +3930,14 @@ export function createTextures(
   for (const def of Object.values(COSMETICS)) {
     if (def.kind === 'weapon_skin') weaponSkins[def.id] = toTexture(weaponSkinCanvas(def.id))
     const paintedPet = def.kind === 'pet' ? petsArt[def.pet ?? ''] : undefined
-    previews[def.id] = paintedPet
-      ? castPortrait(paintedPet)
-      : def.kind === 'character_skin'
-        ? portraits[def.id]
-        : cosmeticPreview(def)
+    const paintedAvatar = def.kind === 'profile_icon' ? avatarArt[def.id] : undefined
+    previews[def.id] = paintedAvatar
+      ? paintedAvatar.src
+      : paintedPet
+        ? castPortrait(paintedPet)
+        : def.kind === 'character_skin'
+          ? portraits[def.id]
+          : cosmeticPreview(def)
   }
 
   return {

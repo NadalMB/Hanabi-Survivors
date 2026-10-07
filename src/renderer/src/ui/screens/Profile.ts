@@ -9,7 +9,7 @@ import { PASSIVES } from '@/game/data/passives'
 import { PASS_LEVELS } from '@/game/data/battlePass'
 import { WEAPONS } from '@/game/data/weapons'
 import { el, formatTime } from '../dom'
-import { screenFrame } from './common'
+import { profileAvatar, screenFrame } from './common'
 
 function clonePass(pass: BattlePassSave): BattlePassSave {
   return { season: pass.season, xp: pass.xp, premium: pass.premium, claimedFree: [...pass.claimedFree], claimedPremium: [...pass.claimedPremium] }
@@ -21,7 +21,8 @@ function cloneLoadout(loadout: CosmeticLoadout): CosmeticLoadout {
     weaponSkins: { ...loadout.weaponSkins },
     ornament: loadout.ornament,
     pet: loadout.pet,
-    effect: loadout.effect
+    effect: loadout.effect,
+    avatar: loadout.avatar
   }
 }
 
@@ -77,7 +78,7 @@ export function profile(app: App): HTMLElement {
   const maxed = progress.level >= ACCOUNT_LEVEL_CAP
 
   const hero = el('div', 'profile-hero')
-  const badge = el('div', 'profile-badge', String(progress.level))
+  const avatar = profileAvatar(app, 'profile-avatar profile-avatar-lg', progress.level)
   const copy = el('div', 'profile-hero-copy')
   const name = el('input', 'text-input profile-name') as HTMLInputElement
   name.maxLength = 16
@@ -97,7 +98,7 @@ export function profile(app: App): HTMLElement {
     ? 'Nivel máximo'
     : `${progress.into.toLocaleString('es-ES')} / ${progress.need.toLocaleString('es-ES')} XP`
   copy.append(name, el('div', 'profile-level-label', maxed ? 'NIVEL MÁXIMO' : `NIVEL ${progress.level}`), bar, el('div', 'profile-xp', xpLine))
-  hero.append(badge, copy)
+  hero.append(avatar, copy)
 
   const pointsRow = el('div', 'profile-points')
   pointsRow.append(

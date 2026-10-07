@@ -23,13 +23,14 @@ function bossPattern(type: number): BossPattern {
 
 function periodFor(type: number): number {
   const pattern = bossPattern(type)
-  if (pattern === 'kitsune') return 4.4
-  if (pattern === 'orochi') return 6.8
-  if (pattern === 'raijin') return 3.9
-  if (pattern === 'yuki') return 5.0
-  if (type === EnemyType.Gate) return 5.6
-  if (type === EnemyType.GateAsh) return 6.4
-  return 5.2
+  // Shorter cycles = more aggressive telegraphs and hits.
+  if (pattern === 'kitsune') return 3.3
+  if (pattern === 'orochi') return 5.1
+  if (pattern === 'raijin') return 2.9
+  if (pattern === 'yuki') return 3.75
+  if (type === EnemyType.Gate) return 4.2
+  if (type === EnemyType.GateAsh) return 4.8
+  return 3.9
 }
 
 function lockAim(world: World, i: number, mx: number, my: number): void {

@@ -211,14 +211,14 @@ function collect(world: World, i: number, p: Player): boolean {
       p.heal(pk.value[i])
       break
     case PickupType.Gold:
-      world.gold += pk.value[i] * p.stats.greed
+      if (!world.practice) world.gold += pk.value[i] * p.stats.greed
       break
     case PickupType.Chest:
       if (pk.owner[i] !== 0 && pk.owner[i] !== p.id) {
         pk.attracted[i] = 0
         return false
       }
-      openChest(world, p)
+      openChest(world, p, pk.x[i], pk.y[i])
       break
     case PickupType.Magnet:
       for (let k = 0; k < pk.count; k++) {

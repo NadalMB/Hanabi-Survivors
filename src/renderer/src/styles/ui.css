@@ -352,6 +352,99 @@
   }
 }
 
+/* Compact chest level toast — sits under weapons / passives in the loadout. */
+.chest-level-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+  pointer-events: none;
+  z-index: 8;
+}
+
+.chest-level-pop {
+  pointer-events: none;
+  transform: translateY(10px) scale(0.92);
+  opacity: 0;
+  transition:
+    opacity 220ms ease,
+    transform 420ms cubic-bezier(0.18, 1.35, 0.28, 1);
+}
+
+.chest-level-pop.in {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.chest-level-pop.leaving {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.96);
+  transition-duration: 260ms, 300ms;
+}
+
+.chest-level-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 14px;
+  background: linear-gradient(165deg, rgba(48, 22, 72, 0.94), rgba(10, 4, 22, 0.96));
+  border: 1px solid rgba(255, 209, 102, 0.42);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.4),
+    0 0 12px rgba(255, 209, 102, 0.18);
+  animation: chest-level-card 480ms cubic-bezier(0.18, 1.4, 0.28, 1) both;
+}
+
+@keyframes chest-level-card {
+  0% { transform: translateY(12px) scale(0.85); filter: brightness(1.4); }
+  55% { transform: translateY(-2px) scale(1.04); filter: brightness(1.08); }
+  100% { transform: none; filter: none; }
+}
+
+.chest-level-icon {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55));
+}
+
+.chest-level-copy {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 6px;
+  align-items: baseline;
+}
+
+.chest-level-plus {
+  grid-row: 1 / span 2;
+  font: 400 30px/0.9 var(--font-display);
+  letter-spacing: 1px;
+  color: #ffe08a;
+  text-shadow: 0 0 12px rgba(255, 209, 102, 0.65);
+  -webkit-text-stroke: 1px #1c0b26;
+}
+
+.chest-level-label {
+  font: 700 11px/1.1 var(--font-body);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #ffe8b0;
+  opacity: 0.9;
+}
+
+.chest-level-name {
+  grid-column: 2;
+  font: 400 14px/1.1 var(--font-display);
+  letter-spacing: 0.5px;
+  color: #f3e8ff;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ------------------------------------------------------------------ overlays */
 
 .overlay {
@@ -428,7 +521,7 @@
   align-items: center;
   gap: 10px;
   border-radius: 16px;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   background: linear-gradient(170deg, rgba(70, 35, 120, 0.95), rgba(25, 10, 50, 0.97));
   border: 2px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
@@ -636,7 +729,7 @@
 
 .chest-skip {
   all: unset;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   padding: 8px 16px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -953,7 +1046,7 @@
   min-width: 180px;
   padding: 16px 28px;
   border-radius: 14px;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   text-align: center;
   font: 400 22px/1 var(--font-display);
   letter-spacing: 2px;
@@ -1105,7 +1198,7 @@
 
 .pause-roster-btn {
   all: unset;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -1164,7 +1257,7 @@
 
 .pause-item {
   all: unset;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   width: 100%;
   box-sizing: border-box;
   display: flex;
@@ -1457,7 +1550,7 @@
   position: relative;
   padding: 14px 34px;
   border-radius: 12px;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   font: 400 18px/1 var(--font-display);
   letter-spacing: 2px;
   color: #fff;
@@ -1544,7 +1637,7 @@
 
 .practice-hud-enemy {
   all: unset;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   padding: 8px 10px;
   border-radius: 10px;
   font: 700 13px/1.2 var(--font-body);

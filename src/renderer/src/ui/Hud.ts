@@ -23,6 +23,9 @@ export class Hud {
   private readonly hpText = el('span', 'hp-text')
   private readonly weapons = el('div', 'slot-row')
   private readonly passives = el('div', 'slot-row')
+  private readonly chestPops = el('div', 'chest-level-stack')
+  private readonly loadout = el('div', 'loadout')
+  private readonly goldPill = el('div', 'stat-pill gold')
   private readonly bossBar = el('div', 'boss-bar')
   private readonly bossFill = el('div', 'boss-fill')
   private readonly bossName = el('div', 'boss-name')
@@ -41,22 +44,44 @@ export class Hud {
     const stats = el('div', 'hud-stats')
     const k = el('div', 'stat-pill')
     k.append(iconImg('skull', 'none', 'stat-icon'), this.kills)
-    const g = el('div', 'stat-pill gold')
-    g.append(iconImg('coin', 'none', 'stat-icon'), this.gold)
-    stats.append(k, g)
+    this.goldPill.append(iconImg('coin', 'none', 'stat-icon'), this.gold)
+    stats.append(k, this.goldPill)
 
     const hp = el('div', 'hp-bar')
     hp.append(this.hpFill, this.hpText)
 
-    const loadout = el('div', 'loadout')
-    loadout.append(hp, this.weapons, this.passives)
+    this.loadout.append(hp, this.weapons, this.passives, this.chestPops)
 
     this.bossBar.append(this.bossName, el('div', 'boss-track'))
     this.bossBar.lastElementChild!.append(this.bossFill)
 
-    this.root.append(xp, this.timer, stats, loadout, this.bossBar, this.banners, this.waiting)
+    this.root.append(xp, this.timer, stats, this.loadout, this.bossBar, this.banners, this.waiting)
     if (showFps) this.root.append(this.fps)
     parent.append(this.root)
+  }
+
+  /** Hide run gold in practice — it never banks. */
+  setPractice(on: boolean): void {
+    this.goldPill.style.display = on ? 'none' : ''
+  }
+
+  /** Compact card under the loadout when a chest grants weapon levels. */
+  chestLevel(icon: IconKey, frame: IconFrame, name: string, steps: number): void {
+    const pop = el('div', 'chest-level-pop')
+    const card = el('div', 'chest-level-card')
+    card.append(iconImg(icon, frame, 'chest-level-icon'))
+    const copy = el('div', 'chest-level-copy')
+    copy.append(
+      el('div', 'chest-level-plus', `+${steps}`),
+      el('div', 'chest-level-label', steps === 1 ? 'nivel' : 'niveles'),
+      el('div', 'chest-level-name', name)
+    )
+    card.append(copy)
+    pop.append(card)
+    this.chestPops.append(pop)
+    requestAnimationFrame(() => pop.classList.add('in'))
+    setTimeout(() => pop.classList.add('leaving'), 1500)
+    setTimeout(() => pop.remove(), 1950)
   }
 
   destroy(): void {

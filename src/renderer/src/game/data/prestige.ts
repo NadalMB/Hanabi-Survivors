@@ -230,12 +230,16 @@ function grow(damage: number): WeaponLevel[] {
   ]
 }
 
+/** Only Hanabi keeps a prestige legendary (Festival Dorado). Other families stop at epic. */
+export const SOLE_PRESTIGE_LEGENDARY_FAMILY = 'hanabi'
+
 export function buildPrestigeWeapons(): Record<string, WeaponDef> {
   const out: Record<string, WeaponDef> = {}
   for (const family of FAMILIES) {
     const list: WeaponDef[] = []
     for (const row of family.rows) {
       if (row.rarity === 'common') continue
+      if (row.rarity === 'legendary' && family.family !== SOLE_PRESTIGE_LEGENDARY_FAMILY) continue
       const id = `${family.family}_${row.rarity}`
       const def: WeaponDef = {
         id,

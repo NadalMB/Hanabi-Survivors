@@ -23,6 +23,8 @@ export interface CosmeticLoadout {
   ornament: string | null
   pet: string | null
   effect: string | null
+  /** Equipped profile icon cosmetic id. */
+  avatar: string | null
 }
 
 export interface BattlePassSave {
@@ -102,7 +104,7 @@ export interface DevUnlockBackup {
 }
 
 export function emptyLoadout(): CosmeticLoadout {
-  return { characterSkins: {}, weaponSkins: {}, ornament: null, pet: null, effect: null }
+  return { characterSkins: {}, weaponSkins: {}, ornament: null, pet: null, effect: null, avatar: null }
 }
 
 const FRIEND_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -206,7 +208,8 @@ function hydrateDevUnlock(raw: unknown): DevUnlockBackup | null {
       weaponSkins: { ...equipped.weaponSkins },
       ornament: equipped.ornament ?? null,
       pet: equipped.pet ?? null,
-      effect: equipped.effect ?? null
+      effect: equipped.effect ?? null,
+      avatar: typeof equipped.avatar === 'string' ? equipped.avatar : null
     }
   }
 }
@@ -294,11 +297,13 @@ function legacyMetaRefund(purchased: unknown): number {
 }
 
 const EXCLUSIVE_PET = 'shikigami'
+/** Cosmetics the save is allowed to keep. Unknown ids from older builds are dropped. */
+const KNOWN_COSMETICS = new Set([EXCLUSIVE_PET, 'avatar_festival'])
 
 function hydrateOwnedCosmetics(raw: unknown): string[] {
   const owned = new Set<string>()
   if (Array.isArray(raw)) {
-    for (const id of raw) if (id === EXCLUSIVE_PET) owned.add(EXCLUSIVE_PET)
+    for (const id of raw) if (typeof id === 'string' && KNOWN_COSMETICS.has(id)) owned.add(id)
   }
   owned.add(EXCLUSIVE_PET)
   return [...owned]
@@ -309,6 +314,10 @@ function hydratePet(pet: unknown, ownedRaw: unknown): string | null {
   if (pet === EXCLUSIVE_PET) return EXCLUSIVE_PET
   const already = Array.isArray(ownedRaw) && ownedRaw.includes(EXCLUSIVE_PET)
   return already ? null : EXCLUSIVE_PET
+}
+
+function hydrateAvatar(avatar: unknown, owned: string[]): string | null {
+  return typeof avatar === 'string' && owned.includes(avatar) && KNOWN_COSMETICS.has(avatar) ? avatar : null
 }
 
 function sanitizeStringMap(raw: unknown): Record<string, string> {
@@ -364,6 +373,7 @@ export function hydrateSave(raw: Partial<SaveData> | null | undefined): SaveData
     metaUpgrades = {}
     accountXp = accountXpForRun(stats.timePlayed, stats.totalKills, stats.bossesDefeated)
   }
+  const ownedCosmetics = hydrateOwnedCosmetics(raw.ownedCosmetics)
   return {
     ...defaults,
     ...raw,
@@ -383,22 +393,26 @@ export function hydrateSave(raw: Partial<SaveData> | null | undefined): SaveData
       ? raw.unlockedCharacters.filter((id): id is string => typeof id === 'string' && playable.has(id))
       : defaults.unlockedCharacters,
     unlockedWeapons: Array.isArray(raw.unlockedWeapons)
-      ? raw.unlockedWeapons.filter(
-          (id): id is string =>
-            typeof id === 'string' && !id.startsWith('guitar') && !id.startsWith('flute') && id !== 'katana_legendary'
-        )
+      ? raw.unlockedWeapons.filter((id): id is string => {
+          if (typeof id !== 'string') return false
+          if (id.startsWith('guitar') || id.startsWith('flute')) return false
+          // Prestige legendaries retired except Festival Dorado (hanabi).
+          if (id.endsWith('_legendary') && id !== 'hanabi_legendary') return false
+          return true
+        })
       : defaults.unlockedWeapons,
     unlockedPassives: Array.isArray(raw.unlockedPassives) ? raw.unlockedPassives.filter((id): id is string => typeof id === 'string') : [],
     seenEnemies: Array.isArray(raw.seenEnemies)
       ? raw.seenEnemies.filter((n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0 && n < 64)
       : [],
-    ownedCosmetics: hydrateOwnedCosmetics(raw.ownedCosmetics),
+    ownedCosmetics,
     equipped: {
       characterSkins: sanitizeStringMap(equipped?.characterSkins),
       weaponSkins: {},
       ornament: null,
       pet: hydratePet(equipped?.pet, raw.ownedCosmetics),
-      effect: null
+      effect: null,
+      avatar: hydrateAvatar(equipped?.avatar, ownedCosmetics)
     },
     battlePass:
       season === BATTLE_PASS_SEASON

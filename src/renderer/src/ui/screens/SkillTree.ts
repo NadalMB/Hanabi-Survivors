@@ -1,13 +1,16 @@
 import { accountLevel } from '@shared/account'
 import type { App } from '@/App'
 import {
-  SKILL_BRANCHES,
+  SKILL_BOARD,
+  SKILL_HUB_ID,
   SKILL_NODES,
+  SKILL_TREE_LAYOUT,
+  migrateSkillTree,
   skillNode,
   skillPointsLeft,
   skillRankCost,
   skillRequirementText,
-  type SkillBranch,
+  skillTone,
   type SkillNodeDef
 } from '@/game/data/meta'
 import { describeMods } from '@/game/data/stats'
@@ -26,75 +29,176 @@ interface Edge {
   kind: 'all' | 'any'
 }
 
-/** Local 0–1 coords inside a branch column; root sits low so the tree grows upward. */
-function layoutBranch(branch: SkillBranch): Map<string, Point> {
-  const map = new Map<string, Point>()
-  const rows = branch.rows
-  rows.forEach((ids, rowIndex) => {
-    const y = 0.9 - (rowIndex / Math.max(1, rows.length - 1 || 1)) * 0.72
-    ids.forEach((id, colIndex) => {
-      const x = ids.length === 1 ? 0.5 : (colIndex + 1) / (ids.length + 1)
-      map.set(id, { x, y })
-    })
-  })
-  return map
-}
+const MIN_ZOOM = 0.55
+const MAX_ZOOM = 1.85
+const BOARD = SKILL_BOARD * 2
 
-function gatherEdges(branchIds: ReadonlySet<string>): Edge[] {
+function gatherEdges(): Edge[] {
   const edges: Edge[] = []
   for (const def of SKILL_NODES) {
-    if (!branchIds.has(def.id)) continue
-    for (const req of def.requires ?? []) {
-      if (branchIds.has(req.id)) edges.push({ from: req.id, to: def.id, kind: 'all' })
-    }
-    for (const req of def.requiresAny ?? []) {
-      edges.push({ from: req.id, to: def.id, kind: 'any' })
-    }
+    for (const req of def.requires ?? []) edges.push({ from: req.id, to: def.id, kind: 'all' })
+    for (const req of def.requiresAny ?? []) edges.push({ from: req.id, to: def.id, kind: 'any' })
   }
   return edges
 }
 
-function curvePath(a: Point, b: Point): string {
-  const midY = (a.y + b.y) / 2
-  return `M ${a.x} ${a.y} C ${a.x} ${midY}, ${b.x} ${midY}, ${b.x} ${b.y}`
+function straightPath(a: Point, b: Point): string {
+  return `M ${a.x} ${a.y} L ${b.x} ${b.y}`
 }
 
 export function skillTree(app: App, back: 'menu' | 'profile'): HTMLElement {
   const save = app.save
+  migrateSkillTree(save.metaUpgrades)
+
   const frame = screenFrame(
     'ÁRBOL DE HABILIDADES',
-    'Cada nivel de perfil da un punto. Mejora nodos para abrir los siguientes.',
+    'Rueda para zoom · arrastra para mover · todo parte de Vitalidad.',
     save.gold,
     () => (back === 'profile' ? app.profile() : app.mainMenu())
   )
 
   const head = el('div', 'tree-head')
   const grove = el('div', 'skill-grove')
-  const canvas = el('div', 'skill-grove-canvas')
+  const viewport = el('div', 'skill-grove-canvas')
+  const world = el('div', 'skill-grove-world')
   const detail = el('aside', 'skill-detail')
-  grove.append(canvas, detail)
+  const zoomBar = el('div', 'skill-zoom-bar')
+  viewport.append(world, zoomBar)
+  grove.append(viewport, detail)
   frame.body.append(head, grove)
 
-  let selected = SKILL_BRANCHES[0]?.rows[0]?.[0] ?? 'filo'
-
-  const branchLayouts = SKILL_BRANCHES.map((branch, index) => {
-    const local = layoutBranch(branch)
-    const global = new Map<string, Point>()
-    const n = SKILL_BRANCHES.length
-    for (const [id, pos] of local) {
-      global.set(id, {
-        x: (index + 0.12 + pos.x * 0.76) / n,
-        y: pos.y
-      })
-    }
-    return { branch, local, global }
-  })
+  let selected = SKILL_HUB_ID
+  let zoom = 1
+  let panX = 0
+  let panY = 0
+  let dragging = false
+  let suppressClick = false
+  let dragX = 0
+  let dragY = 0
+  let dragPanX = 0
+  let dragPanY = 0
+  let svgEl: SVGSVGElement | null = null
+  let layerEl: HTMLElement | null = null
 
   const positions = new Map<string, Point>()
-  for (const pack of branchLayouts) for (const [id, pos] of pack.global) positions.set(id, pos)
+  for (const [id, pos] of Object.entries(SKILL_TREE_LAYOUT)) {
+    positions.set(id, { x: pos.x + SKILL_BOARD, y: pos.y + SKILL_BOARD })
+  }
+  const edges = gatherEdges()
 
-  const allIds = new Set(positions.keys())
-  const edges = gatherEdges(allIds)
+  const applyView = (): void => {
+    const z = zoom
+    const size = Math.round(BOARD * z)
+    panX = Math.round(panX)
+    panY = Math.round(panY)
+    world.style.width = `${size}px`
+    world.style.height = `${size}px`
+    world.style.setProperty('--skill-zoom', String(z))
+    world.style.transform = `translate(${panX}px, ${panY}px)`
+    if (svgEl) {
+      svgEl.setAttribute('width', String(size))
+      svgEl.setAttribute('height', String(size))
+    }
+    if (layerEl) {
+      layerEl.style.width = `${size}px`
+      layerEl.style.height = `${size}px`
+      for (const slot of layerEl.querySelectorAll<HTMLElement>('.skill-slot')) {
+        const x = Number(slot.dataset.x)
+        const y = Number(slot.dataset.y)
+        slot.style.left = `${Math.round(x * z)}px`
+        slot.style.top = `${Math.round(y * z)}px`
+      }
+    }
+    const readout = zoomBar.querySelector('.skill-zoom-readout')
+    if (readout) readout.textContent = `${Math.round(z * 100)}%`
+  }
+
+  const centerView = (): void => {
+    const rect = viewport.getBoundingClientRect()
+    panX = Math.round(rect.width / 2 - SKILL_BOARD * zoom)
+    panY = Math.round(rect.height / 2 - SKILL_BOARD * zoom)
+    applyView()
+  }
+
+  const setZoom = (next: number, aroundX?: number, aroundY?: number): void => {
+    const rect = viewport.getBoundingClientRect()
+    const ax = aroundX ?? rect.width / 2
+    const ay = aroundY ?? rect.height / 2
+    const worldX = (ax - panX) / zoom
+    const worldY = (ay - panY) / zoom
+    zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next))
+    panX = ax - worldX * zoom
+    panY = ay - worldY * zoom
+    applyView()
+  }
+
+  zoomBar.append(
+    el('button', 'skill-zoom-btn', '−'),
+    el('span', 'skill-zoom-readout', '100%'),
+    el('button', 'skill-zoom-btn', '+'),
+    el('button', 'skill-zoom-btn skill-zoom-reset', 'Centrar')
+  )
+  const [zoomOutBtn, , zoomInBtn, resetBtn] = zoomBar.children
+  zoomOutBtn.addEventListener('click', () => {
+    setZoom(zoom / 1.15)
+    app.sfx.ui()
+  })
+  zoomInBtn.addEventListener('click', () => {
+    setZoom(zoom * 1.15)
+    app.sfx.ui()
+  })
+  resetBtn.addEventListener('click', () => {
+    zoom = 1
+    centerView()
+    app.sfx.ui()
+  })
+
+  viewport.addEventListener(
+    'wheel',
+    (ev) => {
+      ev.preventDefault()
+      const rect = viewport.getBoundingClientRect()
+      setZoom(zoom * (ev.deltaY > 0 ? 1 / 1.1 : 1.1), ev.clientX - rect.left, ev.clientY - rect.top)
+    },
+    { passive: false }
+  )
+
+  viewport.addEventListener('pointerdown', (ev) => {
+    if ((ev.target as HTMLElement).closest('.skill-node, .skill-zoom-bar')) return
+    dragging = true
+    suppressClick = false
+    dragX = ev.clientX
+    dragY = ev.clientY
+    dragPanX = panX
+    dragPanY = panY
+    viewport.setPointerCapture(ev.pointerId)
+    viewport.classList.add('panning')
+  })
+  viewport.addEventListener('pointermove', (ev) => {
+    if (!dragging) return
+    const dx = ev.clientX - dragX
+    const dy = ev.clientY - dragY
+    if (Math.hypot(dx, dy) > 4) suppressClick = true
+    panX = Math.round(dragPanX + dx)
+    panY = Math.round(dragPanY + dy)
+    applyView()
+  })
+  const endDrag = (ev: PointerEvent): void => {
+    if (!dragging) return
+    dragging = false
+    viewport.classList.remove('panning')
+    try {
+      viewport.releasePointerCapture(ev.pointerId)
+    } catch {
+      /* already released */
+    }
+    // Clear after the click that follows a drag, so later upgrades still work.
+    if (suppressClick) requestAnimationFrame(() => {
+      suppressClick = false
+    })
+  }
+  viewport.addEventListener('pointerup', endDrag)
+  viewport.addEventListener('pointercancel', endDrag)
 
   const renderDetail = (def: SkillNodeDef): void => {
     const rank = Math.min(save.metaUpgrades[def.id] ?? 0, def.maxRank)
@@ -102,28 +206,57 @@ export function skillTree(app: App, back: 'menu' | 'profile'): HTMLElement {
     const lock = maxed ? null : skillRequirementText(save.metaUpgrades, def)
     const cost = maxed ? 0 : skillRankCost(def, rank)
     const points = skillPointsLeft(save)
+    const hub = def.id === SKILL_HUB_ID
     detail.replaceChildren(
-      el('div', 'skill-detail-kicker', 'Nodo'),
+      el('div', 'skill-detail-kicker', hub ? 'Centro' : 'Mejora'),
       el('h2', 'skill-detail-name', def.name),
       iconImg(def.icon, 'meta', 'skill-detail-icon'),
       el('p', 'skill-detail-gain', describeMods(def.perRank)),
-      el('p', 'skill-detail-rank', `Rango ${rank} / ${def.maxRank}`),
+      el('p', 'skill-detail-rank', `${rank} / ${def.maxRank}`),
       el(
         'p',
         'skill-detail-note',
-        maxed ? 'Al máximo.' : lock ? lock : points >= cost ? `Siguiente rango: ${cost === 1 ? '1 punto' : `${cost} puntos`}` : `Necesitas ${cost} puntos.`
+        maxed
+          ? 'Al máximo.'
+          : lock
+            ? lock
+            : hub && rank === 0
+              ? `Abre las ramas · ${cost === 1 ? '1 punto' : `${cost} puntos`}`
+              : points >= cost
+                ? `Siguiente: ${cost === 1 ? '1 punto' : `${cost} puntos`}`
+                : `Necesitas ${cost} puntos.`
       )
     )
   }
 
+  const tryBuy = (def: SkillNodeDef): void => {
+    selected = def.id
+    renderDetail(def)
+    const owned = save.metaUpgrades[def.id] ?? 0
+    if (owned >= def.maxRank || skillRequirementText(save.metaUpgrades, def)) {
+      app.sfx.hurt()
+      return
+    }
+    const price = skillRankCost(def, owned)
+    if (skillPointsLeft(save) < price) {
+      app.sfx.hurt()
+      return
+    }
+    save.metaUpgrades[def.id] = owned + 1
+    void app.persist()
+    app.sfx.coin()
+    render()
+  }
+
   const render = (): void => {
+    migrateSkillTree(save.metaUpgrades)
     const points = skillPointsLeft(save)
     const level = accountLevel(save.accountXp)
     head.replaceChildren(
       el('div', 'tree-points', `${points.toLocaleString('es-ES')} ${points === 1 ? 'punto' : 'puntos'}`),
-      el('div', 'tree-level', `Nivel de perfil ${level}`)
+      el('div', 'tree-level', `Nivel ${level}`)
     )
-    const reset = el('button', 'btn subtle', 'Reiniciar ramas')
+    const reset = el('button', 'btn subtle', 'Reiniciar')
     reset.disabled = Object.keys(save.metaUpgrades).length === 0
     reset.addEventListener('click', () => {
       if (Object.keys(save.metaUpgrades).length === 0) return
@@ -134,54 +267,15 @@ export function skillTree(app: App, back: 'menu' | 'profile'): HTMLElement {
     })
     head.append(reset)
 
-    canvas.replaceChildren()
-
-    const labels = el('div', 'skill-branch-labels')
-    for (const { branch } of branchLayouts) {
-      const label = el('div', `skill-branch-label ${branch.id}`)
-      label.append(el('div', 'skill-kicker', branch.kicker), el('div', 'skill-branch-name', branch.name))
-      labels.append(label)
-    }
-    canvas.append(labels)
+    const keepZoom = zoomBar
+    world.replaceChildren()
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svgEl = svg
     svg.setAttribute('class', 'skill-links')
-    svg.setAttribute('viewBox', '0 0 1000 1000')
-    svg.setAttribute('preserveAspectRatio', 'none')
-    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
-    for (const tone of ['acero', 'santuario', 'viento', 'hanabi']) {
-      const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient')
-      grad.setAttribute('id', `link-${tone}`)
-      grad.setAttribute('x1', '0%')
-      grad.setAttribute('y1', '100%')
-      grad.setAttribute('x2', '0%')
-      grad.setAttribute('y2', '0%')
-      const c1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop')
-      const c2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop')
-      c1.setAttribute('offset', '0%')
-      c2.setAttribute('offset', '100%')
-      if (tone === 'acero') {
-        c1.setAttribute('stop-color', '#ff5fa2')
-        c2.setAttribute('stop-color', '#ffb0d2')
-      } else if (tone === 'santuario') {
-        c1.setAttribute('stop-color', '#3dff78')
-        c2.setAttribute('stop-color', '#9dffc0')
-      } else if (tone === 'viento') {
-        c1.setAttribute('stop-color', '#5fd3ff')
-        c2.setAttribute('stop-color', '#bfefff')
-      } else {
-        c1.setAttribute('stop-color', '#ffd166')
-        c2.setAttribute('stop-color', '#fff0b0')
-      }
-      grad.append(c1, c2)
-      defs.append(grad)
-    }
-    svg.append(defs)
-
-    const branchOf = (id: string): string => {
-      for (const pack of branchLayouts) if (pack.global.has(id)) return pack.branch.id
-      return 'hanabi'
-    }
+    svg.setAttribute('viewBox', `0 0 ${BOARD} ${BOARD}`)
+    svg.setAttribute('width', String(BOARD))
+    svg.setAttribute('height', String(BOARD))
 
     for (const edge of edges) {
       const from = positions.get(edge.from)
@@ -196,20 +290,20 @@ export function skillTree(app: App, back: 'menu' | 'profile'): HTMLElement {
       const lit = parentRank >= need
       const grown = lit && (save.metaUpgrades[edge.to] ?? 0) > 0
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-      path.setAttribute(
-        'd',
-        curvePath({ x: from.x * 1000, y: from.y * 1000 }, { x: to.x * 1000, y: to.y * 1000 })
-      )
+      path.setAttribute('d', straightPath(from, to))
       path.setAttribute(
         'class',
-        `skill-link ${branchOf(edge.to)}${lit ? ' lit' : ''}${grown ? ' grown' : ''}${edge.kind === 'any' ? ' any' : ''}`
+        `skill-link ${skillTone(edge.to)}${lit ? ' lit' : ''}${grown ? ' grown' : ''}${edge.kind === 'any' ? ' any' : ''}`
       )
       path.setAttribute('fill', 'none')
+      path.setAttribute('vector-effect', 'non-scaling-stroke')
       svg.append(path)
     }
-    canvas.append(svg)
+    world.append(svg)
 
     const layer = el('div', 'skill-nodes')
+    layerEl = layer
+
     for (const def of SKILL_NODES) {
       const pos = positions.get(def.id)
       if (!pos) continue
@@ -218,60 +312,54 @@ export function skillTree(app: App, back: 'menu' | 'profile'): HTMLElement {
       const lock = maxed ? null : skillRequirementText(save.metaUpgrades, def)
       const cost = maxed ? 0 : skillRankCost(def, rank)
       const ready = !maxed && !lock && points >= cost
-      const tone = branchOf(def.id)
-      const slot = el('div', `skill-slot${selected === def.id ? ' selected' : ''}`)
-      slot.style.left = `${pos.x * 100}%`
-      slot.style.top = `${pos.y * 100}%`
+      const tone = skillTone(def.id)
+      const hub = def.id === SKILL_HUB_ID
+      const slot = el('div', `skill-slot${selected === def.id ? ' selected' : ''}${hub ? ' hub' : ''}`)
+      slot.dataset.x = String(pos.x)
+      slot.dataset.y = String(pos.y)
 
       const card = el(
         'button',
-        `skill-node ${tone}${maxed ? ' maxed' : lock ? ' locked' : ready ? ' ready' : ' poor'}${rank > 0 ? ' trained' : ''}`
+        `skill-node ${tone}${maxed ? ' maxed' : lock ? ' locked' : ready ? ' ready' : ' poor'}${rank > 0 ? ' trained' : ''}${hub ? ' hub' : ''}`
       )
       card.type = 'button'
       const ring = el('div', 'skill-ring')
       ring.append(iconImg(def.icon, 'meta', 'skill-icon'))
+      if (!maxed && !lock) {
+        const badge = el('span', 'skill-badge', cost === 0 ? '0' : String(cost))
+        ring.append(badge)
+      } else if (maxed) {
+        ring.append(el('span', 'skill-badge max', '✓'))
+      }
       const pips = el('div', 'pips')
       for (let i = 0; i < def.maxRank; i++) pips.append(el('span', `pip${i < rank ? ' on' : ''}`))
       card.append(ring, el('div', 'skill-name', def.name), pips)
-      if (maxed) card.append(el('div', 'skill-cost', 'Máx'))
-      else if (lock) card.append(el('div', 'skill-cost', 'Bloq.'))
-      else card.append(el('div', 'skill-cost', `${cost}p`))
 
-      card.addEventListener('mouseenter', () => {
+      card.addEventListener('pointerenter', () => {
         selected = def.id
         renderDetail(def)
         for (const node of layer.querySelectorAll('.skill-slot')) node.classList.toggle('selected', node === slot)
       })
-      card.addEventListener('click', () => {
-        selected = def.id
-        renderDetail(def)
-        const owned = save.metaUpgrades[def.id] ?? 0
-        if (owned >= def.maxRank || skillRequirementText(save.metaUpgrades, def)) {
-          app.sfx.hurt()
+      card.addEventListener('click', (ev) => {
+        if (suppressClick) {
+          ev.preventDefault()
+          suppressClick = false
           return
         }
-        const price = skillRankCost(def, owned)
-        if (skillPointsLeft(save) < price) {
-          app.sfx.hurt()
-          card.classList.remove('shake')
-          void card.offsetWidth
-          card.classList.add('shake')
-          return
-        }
-        save.metaUpgrades[def.id] = owned + 1
-        void app.persist()
-        app.sfx.coin()
-        render()
+        tryBuy(def)
       })
       slot.append(card)
       layer.append(slot)
     }
-    canvas.append(layer)
+    world.append(layer)
+    if (!keepZoom.isConnected) viewport.append(keepZoom)
 
     const focus = skillNode(selected) ?? SKILL_NODES[0]
     if (focus) renderDetail(focus)
+    applyView()
   }
 
   render()
+  requestAnimationFrame(() => centerView())
   return frame.root
 }

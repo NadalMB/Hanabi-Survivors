@@ -25,7 +25,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'weapon_skin', label: KIND_LABEL.weapon_skin },
   { id: 'ornament', label: KIND_LABEL.ornament },
   { id: 'pet', label: KIND_LABEL.pet },
-  { id: 'effect', label: KIND_LABEL.effect }
+  { id: 'effect', label: KIND_LABEL.effect },
+  { id: 'profile_icon', label: KIND_LABEL.profile_icon }
 ]
 
 function cardLabel(name: string, maxLevel: number): HTMLElement {
@@ -167,7 +168,8 @@ export function album(app: App): HTMLElement {
       } else if (COSMETICS[item.id]) {
         const def = COSMETICS[item.id]
         card.classList.add(def.rarity)
-        const img = cosmeticArt(app, def, 'album-card-img')
+        if (def.kind === 'profile_icon') card.classList.add('avatar')
+        const img = cosmeticArt(app, def, def.kind === 'profile_icon' ? 'album-card-img album-avatar-img' : 'album-card-img')
         if (!item.owned) img.classList.add('silhouette')
         card.append(img, el('div', 'album-card-name', item.owned ? def.name : '???'))
       }
@@ -264,7 +266,7 @@ export function album(app: App): HTMLElement {
     const cosmetic = COSMETICS[selected]
     if (!cosmetic || cosmetic.kind !== tab) return
     const owned = ownsCosmetic(save, selected)
-    const img = cosmeticArt(app, cosmetic, 'album-portrait')
+    const img = cosmeticArt(app, cosmetic, cosmetic.kind === 'profile_icon' ? 'album-portrait album-avatar-portrait' : 'album-portrait')
     if (!owned) img.classList.add('silhouette')
     detail.append(
       img,

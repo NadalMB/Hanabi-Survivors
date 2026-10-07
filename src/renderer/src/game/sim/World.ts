@@ -9,7 +9,15 @@ import { updateEnemies } from '../systems/enemies'
 import { spawnPickup, updatePickups } from '../systems/pickups'
 import { downPlayer, updatePlayers } from '../systems/players'
 import { updateProjectiles } from '../systems/projectiles'
-import { applyChoice, CHEST_CONSOLATION_GOLD, chestChoices, generateChoices, isChestUiOffer, rollSharedChest } from '../systems/upgrades'
+import {
+  applyChoice,
+  CHEST_CONSOLATION_GOLD,
+  chestChoices,
+  generateChoices,
+  isChestLevelOffer,
+  isChestUiOffer,
+  rollSharedChest
+} from '../systems/upgrades'
 import { updateWeapons } from '../systems/weapons'
 import { WORLD_COUNT } from '../data/worlds'
 import { CELL_SIZE, RUN_DURATION_SECONDS, xpForLevel } from './config'
@@ -79,8 +87,12 @@ export class World {
   endless = false
   /** One chest on the ground opens a different offer for every living player. */
   sharedChest: { playerId: PlayerId; choices: UpgradeChoice[]; pick: number | null }[] | null = null
+  /** World position of the shared chest currently being resolved. */
+  sharedChestOrigin: { x: number; y: number } | null = null
   /** Extra shared chests picked up before the current one is resolved. */
   queuedChests = 0
+  /** World positions for queued shared chests. */
+  readonly queuedChestPos: { x: number; y: number }[] = []
   readonly seed: number
 
   constructor(opts: WorldOptions) {
@@ -180,7 +192,9 @@ export class World {
     this.xp = 0
     this.xpToNext = xpForLevel(1)
     this.sharedChest = null
+    this.sharedChestOrigin = null
     this.queuedChests = 0
+    this.queuedChestPos.length = 0
     if (this.state !== 'gameover' && this.state !== 'victory') this.state = 'running'
     for (const p of this.players) p.resetBuild()
     const wipe = (pool: { count: number; alive: Uint8Array; compact: () => void }): void => {
@@ -301,16 +315,38 @@ export class World {
   }
 
   /**
-   * Prestige/evolution opens the chest UI. If the roll is only levels or filler,
-   * skip the overlay and pay a flat coin consolation.
+   * Prestige/evolution opens the chest UI. Weapon levels apply instantly with a
+   * small toast. Anything else pays a flat coin consolation.
    */
   private deliverChest(p: Player, choices: UpgradeChoice[]): void {
-    if (isChestUiOffer(choices[0])) {
+    const choice = choices[0]
+    if (isChestUiOffer(choice)) {
       p.choices = choices
       p.offer = 'chest'
       return
     }
-    this.gold += CHEST_CONSOLATION_GOLD
+    if (isChestLevelOffer(choice)) {
+      const before = p.weapon(choice.id)?.level ?? 1
+      applyChoice(this, p, choice)
+      const after = p.weapon(choice.id)?.level ?? before
+      const steps = Math.max(1, after - before)
+      const pos = p.pendingChestPos.shift() ?? this.sharedChestOrigin ?? { x: p.x, y: p.y }
+      this.events.push({
+        e: 'chest-level',
+        playerId: p.id,
+        weaponId: choice.id,
+        steps,
+        level: after,
+        x: pos.x,
+        y: pos.y
+      })
+      this.noteChestPick(p.id, 0)
+      this.finishSharedChest()
+      this.offerIfIdle(p)
+      return
+    }
+    p.pendingChestPos.shift()
+    if (!this.practice) this.gold += CHEST_CONSOLATION_GOLD
     this.noteChestPick(p.id, -1)
     this.finishSharedChest()
     this.offerIfIdle(p)
@@ -336,14 +372,20 @@ export class World {
     })
     if (pending) return
     this.sharedChest = null
+    this.sharedChestOrigin = null
     for (const p of this.players) p.awaitingChest = false
     if (this.queuedChests <= 0) return
     this.queuedChests--
     const party = this.players.filter((p) => p.alive && !p.disconnected)
+    const origin = this.queuedChestPos.shift() ?? { x: party[0]?.x ?? 0, y: party[0]?.y ?? 0 }
     if (party.length <= 1) {
-      if (party[0]) party[0].pendingChests++
+      if (party[0]) {
+        party[0].pendingChests++
+        party[0].pendingChestPos.push(origin)
+      }
       return
     }
+    this.sharedChestOrigin = origin
     this.sharedChest = rollSharedChest(this, party)
     for (const p of party) p.awaitingChest = true
     for (const p of party) this.offerIfIdle(p)

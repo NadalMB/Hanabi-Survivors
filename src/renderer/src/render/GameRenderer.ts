@@ -89,6 +89,8 @@ export class GameRenderer {
   private flashAlpha = 0
   private vignetteAlpha = 0
   private bounds = { minX: 0, maxX: 0, minY: 0, maxY: 0 }
+  /** Last frame camera, for HUD overlays that need world → screen. */
+  private view = { zoom: 1, camX: 0, camY: 0, sw: 1, sh: 1, cssW: 1, cssH: 1 }
 
   constructor(
     private readonly app: Application,
@@ -166,6 +168,17 @@ export class GameRenderer {
     this.flashAlpha = Math.max(this.flashAlpha, alpha)
   }
 
+  /** CSS-pixel screen position of a world point (matches the canvas client box). */
+  worldToScreen(x: number, y: number): { sx: number; sy: number } {
+    const { zoom, camX, camY, sw, sh, cssW, cssH } = this.view
+    const kx = cssW / sw
+    const ky = cssH / sh
+    return {
+      sx: (x - camX) * zoom * kx + cssW / 2 + this.camera.offsetX * kx,
+      sy: (y - camY) * zoom * ky + cssH / 2 + this.camera.offsetY * ky
+    }
+  }
+
   // ------------------------------------------------------------------ frame
 
   render(world: World, alpha: number, dt: number, localId: PlayerId): void {
@@ -176,6 +189,16 @@ export class GameRenderer {
     const local = world.playerById(localId) ?? world.players[0]
     const camX = local.prevX + (local.x - local.prevX) * alpha
     const camY = local.prevY + (local.y - local.prevY) * alpha
+    const canvas = this.app.canvas as HTMLCanvasElement
+    this.view = {
+      zoom,
+      camX,
+      camY,
+      sw,
+      sh,
+      cssW: canvas.clientWidth || sw,
+      cssH: canvas.clientHeight || sh
+    }
 
     this.camera.update(dt)
     const ox = sw / 2 - camX * zoom + this.camera.offsetX

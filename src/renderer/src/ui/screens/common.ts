@@ -1,5 +1,5 @@
 import type { App } from '@/App'
-import { RARITY_COLOR, RARITY_LABEL, type CosmeticDef, type Rarity } from '@/game/data/cosmetics'
+import { equippedAvatarUrl, RARITY_COLOR, RARITY_LABEL, type CosmeticDef, type Rarity } from '@/game/data/cosmetics'
 import { iconImg } from '@/render/icons'
 import { el } from '../dom'
 
@@ -56,6 +56,24 @@ export function cosmeticArt(app: App, def: CosmeticDef, className = 'cosmetic-ar
 export function portraitFor(app: App, characterId: string): string {
   const skin = app.save.equipped.characterSkins[characterId]
   return app.textures.portraits[skin ?? characterId] ?? app.textures.portraits[characterId]
+}
+
+/** Round profile frame with the equipped icon, or a level fallback. */
+export function profileAvatar(app: App, className = 'profile-avatar', level?: number): HTMLElement {
+  const wrap = el('div', className)
+  const url = equippedAvatarUrl(app.save, app.textures.previews)
+  if (url) {
+    const img = el('img', 'profile-avatar-img') as HTMLImageElement
+    img.src = url
+    img.alt = ''
+    img.draggable = false
+    wrap.append(img)
+  } else {
+    const mark = level != null ? String(level) : (app.save.settings.playerName.trim().slice(0, 1).toUpperCase() || '?')
+    wrap.append(el('span', 'profile-avatar-fallback', mark))
+  }
+  if (level != null) wrap.append(el('span', 'profile-avatar-level', String(level)))
+  return wrap
 }
 
 export function statusLine(): { node: HTMLElement; set(text: string, tone?: 'info' | 'error' | 'ok'): void } {

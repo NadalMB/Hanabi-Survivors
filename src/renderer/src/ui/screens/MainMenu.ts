@@ -5,7 +5,7 @@ import type { App } from '@/App'
 import { CHARACTERS, CHARACTER_ORDER } from '@/game/data/characters'
 import { skillPointsLeft } from '@/game/data/meta'
 import { el, formatTime, whileMounted } from '../dom'
-import { goldPill, portraitFor } from './common'
+import { goldPill, portraitFor, profileAvatar } from './common'
 import { isUnlocked } from './CharacterSelect'
 
 function mostPlayedId(save: SaveData): string {
@@ -67,7 +67,7 @@ export function mainMenu(app: App): HTMLElement {
   item('Jugar', 'Partida en solitario', () => app.characterSelect(), true)
   item('Cooperativo', 'Online con código o red local', () => app.coopMenu())
   item('Tienda', 'Próximamente', () => app.boutique())
-  item('Pase de batalla', 'El nivel sube. Las recompensas, próximamente', () => app.battlePass())
+  item('Pase de batalla', 'Icono de perfil en el nivel 10 gratuito', () => app.battlePass())
   item('Álbum', 'Colección de heroínas, armas y enemigos', () => app.album())
   item('Habilidades', 'Árbol permanente por ramas', () => app.skills())
   item('Ajustes', 'Sonido y pantalla', () => app.settings())
@@ -114,7 +114,7 @@ export function mainMenu(app: App): HTMLElement {
   const progress = accountXpProgress(save.accountXp)
   const points = skillPointsLeft(save)
   const chip = el('button', 'profile-chip')
-  chip.append(el('span', 'profile-chip-level', String(progress.level)))
+  chip.append(profileAvatar(app, 'profile-avatar profile-avatar-sm', progress.level))
   const chipCopy = el('span', 'profile-chip-copy')
   const chipBar = el('span', 'profile-chip-bar')
   const chipFill = el('span', 'profile-chip-fill')

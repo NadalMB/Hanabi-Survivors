@@ -219,14 +219,24 @@ function blockChoice(blocked: Set<string>, choice: UpgradeChoice): void {
   }
 }
 
-/** Missed rarity / nothing left: deliverChest turns this into consolation gold. */
+/** Nothing left to level or prestige: deliverChest pays consolation gold. */
 function chestMiss(): UpgradeChoice {
   return { kind: 'gold', id: 'chest', level: 0, rarity: 'common' }
 }
 
+/** Levels on a carried weapon when the rolled prestige tier was not available. */
+function chestLevelReward(world: World, p: Player, rarity: ChestRarity): UpgradeChoice {
+  const roomy = p.weapons.filter((slot) => slot.level < maxWeaponLevel(WEAPONS[slot.id]))
+  if (roomy.length === 0) return chestMiss()
+  const slot = roomy[world.rng.int(roomy.length)]
+  const steps = Math.min(raritySteps(rarity), maxWeaponLevel(WEAPONS[slot.id]) - slot.level)
+  return { kind: 'weapon', id: slot.id, level: slot.level + steps, rarity: rarityForSteps(steps) }
+}
+
 /**
  * Chest prestige uses the rolled rarity as-is (72/20/6/2). No floor bump to the
- * next available form — if that tier is not open, the chest pays gold instead.
+ * next available form — if that tier is not open, the chest grants weapon levels
+ * (or gold when every weapon is already capped).
  */
 function rollPrestige(world: World, p: Player, blocked: Set<string>): UpgradeChoice {
   const owned = new Set(p.weapons.map((slot) => slot.id))
@@ -248,7 +258,7 @@ function rollPrestige(world: World, p: Player, blocked: Set<string>): UpgradeCho
       matches.push({ slot, offer })
     }
   }
-  if (matches.length === 0) return chestMiss()
+  if (matches.length === 0) return chestLevelReward(world, p, rarity)
 
   const fresh = matches.filter((m) => ![...blocked].some((id) => weaponFamily(id) === weaponFamily(m.slot.id)))
   const pool = fresh.length > 0 ? fresh : matches
@@ -256,31 +266,39 @@ function rollPrestige(world: World, p: Player, blocked: Set<string>): UpgradeCho
   return { kind: 'prestige', id: pick.slot.id, into: pick.offer.id, level: pick.slot.level, rarity: pick.offer.rarity }
 }
 
-/** One chest reward. Prestige/evolution opens the UI; anything else becomes consolation gold. */
+/** One chest reward. Prestige/evolution opens the UI; levels apply instantly. */
 export function chestChoices(world: World, p: Player, blocked: Set<string> = new Set()): UpgradeChoice[] {
   const choice = rollPrestige(world, p, blocked)
   blockChoice(blocked, choice)
   return [choice]
 }
 
-/** True when the chest should open the swap UI instead of paying consolation gold. */
+/** True when the chest should open the prestige/evolution swap UI. */
 export function isChestUiOffer(choice: UpgradeChoice | undefined): boolean {
   return !!choice && (choice.kind === 'prestige' || choice.kind === 'evolution')
+}
+
+/** Instant weapon levels from a chest (no overlay). */
+export function isChestLevelOffer(choice: UpgradeChoice | undefined): boolean {
+  return !!choice && choice.kind === 'weapon' && choice.level > 1
 }
 
 export const CHEST_CONSOLATION_GOLD = 10
 
 /** One pickup opens a different chest for every living player. Solo still queues a personal chest. */
-export function openChest(world: World, p: Player): void {
+export function openChest(world: World, p: Player, x = p.x, y = p.y): void {
   const party = world.players.filter((pl) => pl.alive && !pl.disconnected)
   if (party.length <= 1) {
     p.pendingChests++
+    p.pendingChestPos.push({ x, y })
     return
   }
   if (world.sharedChest) {
     world.queuedChests++
+    world.queuedChestPos.push({ x, y })
     return
   }
+  world.sharedChestOrigin = { x, y }
   world.sharedChest = rollSharedChest(world, party)
   for (const pl of party) pl.awaitingChest = true
 }

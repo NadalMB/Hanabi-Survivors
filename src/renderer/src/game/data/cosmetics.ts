@@ -1,7 +1,7 @@
 import type { CosmeticLoadout, SaveData } from '@shared/save'
 import type { CharacterPalette, OutfitPattern } from './characters'
 
-export type CosmeticKind = 'character_skin' | 'weapon_skin' | 'ornament' | 'pet' | 'effect'
+export type CosmeticKind = 'character_skin' | 'weapon_skin' | 'ornament' | 'pet' | 'effect' | 'profile_icon'
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary' | 'exclusive'
 export type CosmeticSource = 'shop' | 'pass'
 
@@ -39,6 +39,15 @@ export const COSMETICS: Record<string, CosmeticDef> = {
     price: 0,
     source: 'shop',
     pet: 'shikigami'
+  },
+  avatar_festival: {
+    id: 'avatar_festival',
+    kind: 'profile_icon',
+    name: 'Icono Festival',
+    description: 'Retrato chibi del Festival de las Linternas. Se desbloquea en el nivel 10 del pase gratuito.',
+    rarity: 'rare',
+    price: 0,
+    source: 'pass'
   }
 }
 
@@ -49,7 +58,8 @@ export const KIND_LABEL: Record<CosmeticKind, string> = {
   weapon_skin: 'Skins de arma',
   ornament: 'Adornos',
   pet: 'Mascotas',
-  effect: 'Efectos'
+  effect: 'Efectos',
+  profile_icon: 'Iconos de perfil'
 }
 
 export const RARITY_LABEL: Record<Rarity, string> = {
@@ -120,8 +130,16 @@ export function loadoutFromSave(save: SaveData): CosmeticLoadout {
     weaponSkins: { ...save.equipped.weaponSkins },
     ornament: save.equipped.ornament,
     pet: save.equipped.pet,
-    effect: save.equipped.effect
+    effect: save.equipped.effect,
+    avatar: save.equipped.avatar
   }
+}
+
+/** Preview URL for the equipped profile icon, or null when none is set. */
+export function equippedAvatarUrl(save: SaveData, previews: Record<string, string>): string | null {
+  const id = save.equipped.avatar
+  if (!id || !ownsCosmetic(save, id) || COSMETICS[id]?.kind !== 'profile_icon') return null
+  return previews[id] ?? null
 }
 
 export function playerSkinKey(loadout: CosmeticLoadout | undefined, characterId: string): string {
@@ -140,6 +158,7 @@ export function weaponSkinFor(loadout: CosmeticLoadout | undefined, weaponId: st
 export function grantCosmetic(save: SaveData, id: string): boolean {
   if (!COSMETICS[id] || save.ownedCosmetics.includes(id)) return false
   save.ownedCosmetics.push(id)
+  if (COSMETICS[id].kind === 'profile_icon' && !save.equipped.avatar) save.equipped.avatar = id
   return true
 }
 
@@ -151,6 +170,7 @@ export function isEquipped(save: SaveData, id: string): boolean {
   if (c.kind === 'ornament') return save.equipped.ornament === id
   if (c.kind === 'pet') return save.equipped.pet === id
   if (c.kind === 'effect') return save.equipped.effect === id
+  if (c.kind === 'profile_icon') return save.equipped.avatar === id
   return false
 }
 
@@ -162,6 +182,7 @@ export function equipCosmetic(save: SaveData, id: string): void {
   else if (c.kind === 'ornament') save.equipped.ornament = id
   else if (c.kind === 'pet') save.equipped.pet = id
   else if (c.kind === 'effect') save.equipped.effect = id
+  else if (c.kind === 'profile_icon') save.equipped.avatar = id
 }
 
 export function unequipCosmetic(save: SaveData, id: string): void {
@@ -174,4 +195,5 @@ export function unequipCosmetic(save: SaveData, id: string): void {
   } else if (c.kind === 'ornament' && save.equipped.ornament === id) save.equipped.ornament = null
   else if (c.kind === 'pet' && save.equipped.pet === id) save.equipped.pet = null
   else if (c.kind === 'effect' && save.equipped.effect === id) save.equipped.effect = null
+  else if (c.kind === 'profile_icon' && save.equipped.avatar === id) save.equipped.avatar = null
 }

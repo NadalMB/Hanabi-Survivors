@@ -52,6 +52,8 @@ export type GameEvent =
   | { e: 'pickup'; kind: number; playerId: PlayerId; x: number; y: number }
   | { e: 'level-up'; level: number }
   | { e: 'chest'; playerId: PlayerId; lines: string[] }
+  /** Instant weapon levels from a chest — no overlay, toast pops from world x/y. */
+  | { e: 'chest-level'; playerId: PlayerId; weaponId: string; steps: number; level: number; x: number; y: number }
   | { e: 'discover'; playerId: PlayerId; weaponId: string }
   | { e: 'evolution'; playerId: PlayerId; weaponId: string }
   | { e: 'boss'; enemyType: number; mini?: boolean }
